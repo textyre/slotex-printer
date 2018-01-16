@@ -217,3 +217,8 @@ function deleteErrorDisplay() {
   main.style.justifyContent = '';
   main.style.alignItems     = '';
 }
+
+function f() {
+  console.log('f');
+  console.log('d');
+}
