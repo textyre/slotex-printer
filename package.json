@@ -1,0 +1,16 @@
+{
+  "name": "slotexIS",
+  "version": "0.1.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron main.js",
+    "build": "electron-packager . slotexIS --all --version=0.33.3 --app-version=0.1.0 --out=dist --ignore=dist --prune"
+  },
+  "dependencies": {
+    "mongodb": "^3.0.1"
+  },
+  "devDependencies": {
+    "electron": "1.7.10",
+    "webpack": "^3.10.0"
+  }
+}

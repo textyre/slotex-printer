@@ -1,0 +1,798 @@
+@font-face {
+    font-family: Ubuntu; /* Гарнитура шрифта */
+    src: url(../resources/1.ttf); /* Путь к файлу со шрифтом */
+}
+
+html, body
+{
+  min-width: 100%;
+  height: 100%;
+  background-color: white;
+  min-width: 1280px;
+}
+
+*
+{
+  margin: 0px;
+}
+
+:active, :hover, :focus {
+    outline: 0;
+    outline-offset: 0;
+}
+
+::-webkit-scrollbar { display: none; }
+
+.sidebar
+{
+  position: fixed;
+  height: 97%;
+  width: 20%;
+  min-width: 20%;
+  margin-top: 1%;
+  margin-left: 1%;
+  background-color: white;
+  box-shadow: -1px -1px 2em rgba(0, 0, 0, 0.1);
+  overflow: scroll;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  z-index: 3;
+  -webkit-transform: translate3d(0, 0, 0);
+
+}
+
+#loclogo
+{
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px;
+  width: 100%;
+  background: linear-gradient(to bottom left, #29B2FF, #0095e9);
+}
+
+.sidebar #logo
+{
+  width: 30px;
+  height: 40px;
+}
+
+#locationLogo
+{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 30%;
+  background-color: #0299ee;
+}
+
+#locationUser
+{
+  width: 70%;
+}
+
+#nameUser
+{
+  display: inline-block;
+  font-family: Ubuntu;
+  font-size: 14px;
+  font-weight: bolder;
+  letter-spacing: 0.02em;
+  margin-left: 15%;
+  width: 70%;
+  color: white;
+}
+
+#changeUser
+{
+  display: inline-block;
+  font-family: Ubuntu;
+  font-size: 12px;
+  font-weight: bolder;
+  letter-spacing: 0.02em;
+  margin-top: 4%;
+  margin-left: 15%;
+  width: 100%;
+  color: white;
+}
+
+#changeUser:hover
+{
+  transition: all 100ms ease-in;
+  transform: scale(1.02);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+
+#filterbar
+{
+  position: absolute;
+  transition: all 0.8s ease-in-out;
+}
+
+#filterbar.hide
+{
+  pointer-events: none;
+  transition: all 0.4s ease-in-out;
+  opacity: 0;
+}
+
+#categories
+{
+  display: inline-block;
+  font-family: Ubuntu;
+  font-size: 20px;
+  font-weight: bolder;
+  width: 100%;
+  margin-left: 5%;
+  margin-top: 6%;
+  color: #404040;
+}
+
+.ttFilter
+{
+  display: inline-block;
+  font-family: Ubuntu;
+  font-size: 17px;
+  color: #404040;
+  padding-top:10%;
+  margin-left: 15px;
+  width: 100%;
+}
+
+.titleFilter
+{
+  display: inline-block;
+  font-family: Ubuntu;
+  font-size: 15px;
+  margin-left: 15px;
+  margin-top: 8%;
+  margin-bottom: 8%;
+  color: #808080;
+}
+
+.filter
+{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 40px;
+  color: white;
+
+}
+
+.filter input
+{
+  width: 90%;
+  height: 30px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  padding-right: 5px;
+  margin-bottom: 10%;
+  margin-left: 15px;
+  margin-right: 15px;
+
+  border-collapse: collapse;
+  border: solid #29B2FF;
+  border-width: thin;
+  border-radius: 3px;
+
+  -webkit-appearance: none;
+  outline: 0;
+
+  background-color: white;
+  font-family: Ubuntu;
+  font-size: 16px;
+  color: #808080;
+}
+
+.filter ::-webkit-input-placeholder
+{
+  color: #808080;
+  font-weight: bolder;
+}
+
+.filter input:hover, .filter input:focus
+{
+  background-color: rgba(41, 178, 255, 0.02);
+}
+
+#toDate
+{
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.errorLabel
+{
+  font-family: Ubuntu;
+  font-size: 14px;
+  margin-left: 18px;
+  margin-top: 20px;
+  display: none;
+  position: absolute;
+  color: red;
+}
+
+#createOrderBar
+{
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#createOrderBar.visible
+{
+  transition: all 0.4s ease-in-out;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+#titleCreateOrder
+{
+  display: inline-block;
+  width: 100%;
+  font-family: Ubuntu;
+  font-size: 20px;
+  font-weight: bolder;
+  color: #404040;
+  margin-left: 5%;
+  padding-top: 5%;
+  padding-bottom: 5%;
+}
+
+#usersBar
+{
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  width: 100%;
+}
+
+#usersBar.visible
+{
+  transition: all 0.4s ease-in-out;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+#users
+{
+  overflow-y: scroll;
+  overflow-x: none;
+  height: 445px;
+}
+
+.user
+{
+  width: 95%;
+
+  font-family: Ubuntu;
+  font-size: 14px;
+  font-weight: bolder;
+  color: #808080;
+
+  padding-top: 20px;
+  padding-bottom: 20px;
+  padding-left: 5%;
+}
+
+.user:hover
+{
+  background-color: #29B2FF;
+  color: white;
+}
+
+.user:focus
+{
+  background-color: #1ca1ec;
+  color: white;
+}
+
+#blockButton
+{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 5%;
+  width: 100%;
+}
+
+.btn
+{
+  margin-left: 15px;
+  margin-right: 15px;
+  margin-top: 2%;
+  font-family: Ubuntu;
+  font-size: 14px;
+  color: #29B2FF;
+  border-radius: 3px;
+  background: white;
+  width: 110px;
+  height: 35px;
+}
+
+#btnCreateOrder, #btnChooseUser
+{
+  border: 1px solid #29B2FF;
+  color: #29B2FF;
+  background: white;
+}
+
+#btnCreateOrder:hover, #btnChooseUser:hover
+{
+  color: white;
+  background: #29B2FF;
+}
+
+#lastFilter, .line-blue
+{
+  border-collapse: collapse;
+  border-bottom: solid rgba(41, 178, 255, 0.2);
+  border-width: thin;
+}
+
+#lastFilter
+{
+  padding-bottom: 20px;
+}
+
+#btnAddOrder
+{
+  margin-left: 15px;
+  margin-right: 15px;
+  margin-top: 10%;
+  width: 90%;
+  font-family: Ubuntu;
+  font-size: 14px;
+  color: white;
+  background: #29B2FF;
+  border: none;
+  border-radius: 3px;
+  height: 40px;
+}
+
+#btnAddOrder:hover, #btnAddOrder:focus
+{
+  color: white;
+  background: #0095e9;
+  transition: all 200ms ease-in;
+  transform: scale(1.019);
+}
+
+#btnCancel, #btnCancelChooseUsers
+{
+  margin-right: -5px;
+  border: 1px solid #e0e0e0;
+  color: #e0e0e0;
+  background: white;
+}
+
+#btnCancel:hover, #btnCancelChooseUsers:hover
+{
+  color: white;
+  background: #e0e0e0;
+}
+
+#list
+{
+  display: none;
+}
+
+#list.visible
+{
+  display: block;
+  position: fixed;
+  height: 97%;
+  width: 20%;
+  margin-top: 1%;
+  margin-bottom: 1%;
+  margin-left: 21.5%;
+  background-color: rgba(80, 80, 80, 0.9);
+  box-shadow: 0px 0px 1em rgba(0, 0, 0, 0.2);
+  overflow: scroll;
+  z-index: 7;
+}
+
+.listitem:hover
+{
+  background-color: #29B2FF;
+  color: white;
+}
+
+.listitem
+{
+  font-family: Ubuntu;
+  font-size: 13px;
+  color: white;
+  padding-left: 5%;
+  padding-right: 5%;
+  padding-top: 6%;
+  padding-bottom: 6%;
+  width: 90%;
+}
+
+.searchbar
+{
+  position: fixed;
+  width: 100%;
+  height: 90px;
+  z-index: 2;
+  background: linear-gradient(to bottom, white 70%, rgba(255, 255, 255, 0));
+  -webkit-transform: translate3d(0, 0, 0);
+
+}
+
+.searchbar #inputSearchBar
+{
+  width: 75%;
+  height: 80px;
+  margin-top: 1%;
+  margin-bottom: 15px;
+  margin-left: 22%;
+  font-size: 22px;
+  font-weight: 600;
+  font-family: Ubuntu;
+
+  -webkit-appearance: none;
+  outline: 0;
+  border: 0;
+  color: #404040;
+  padding-left: 2%;
+  box-shadow: 0 0 1em rgba(0,0,0,0.1);
+  z-index: 3;
+}
+
+#inputSearchBar:focus
+{
+  transition: all 200ms ease-in;
+  transform: scale(1.01);
+}
+
+::-webkit-input-placeholder
+{
+  color: #d0d0d0;
+  font-weight: bolder;
+}
+
+#button_showStatistics
+{
+  width: 77%;
+  height: 70px;
+
+  margin-left: 22%;
+  margin-top: 110px;
+
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+
+  background-color: #ffffff;
+  box-shadow: 0 0 1em rgba(0,0,0,0.1);
+
+  z-index: 2;
+}
+
+.Field
+{
+  font-family: Ubuntu;
+  font-size: 14px;
+  margin-left: 2%;
+}
+
+.Field label
+{
+  color: #666666;
+}
+
+#time
+{
+  color: #404040;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+#btnShowStatistcs
+{
+  border: 1px solid #29B2FF;
+  border-radius: 3px;
+
+  color: #29B2FF;
+  background-color: inherit;
+
+  width: 170px;
+  height: 35px;
+  margin-right: 2%;
+
+  font-family: Ubuntu;
+  font-size: 14px;
+}
+
+#btnShowStatistcs:hover
+{
+  color: white;
+  background: #29B2FF;
+}
+
+.error_notFound
+{
+  font-family: Ubuntu;
+  font-size: 36px;
+  color: #dadada;
+  margin-top: -20%;
+}
+
+#main
+{
+  position: relative;
+  margin-left: 22%;
+  margin-bottom: 18px;
+  padding-top: 95px;
+  width: 77.8%;
+  min-height: 100%;
+  z-index: 1;
+}
+
+#ordersMain
+{
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+#searchMain
+{
+  display: none;
+  position: absolute;
+  min-height: 100%;
+  width: 77%;
+  background-color: rgba(25, 178, 223, 0.02);
+}
+
+.order
+{
+  display: inline-block;
+  width: 19%;
+  height: 350px;
+  margin-top: 1.5%;
+  margin-right: 1%;
+  background-color: white;
+  box-shadow: 0 4px 1em rgba(0,0,0,0.1);
+  z-index: 0;
+}
+
+.statusRun, .statusOpen, .statusClose
+{
+  width: 100%;
+  bottom: 0;
+  height: 5px;
+}
+
+.statusRun
+{
+  background-color: #29B2FF;
+}
+
+.statusOpen
+{
+  background-color: white;
+}
+
+.statusClose
+{
+  background-color: #8CD98E;
+}
+
+#titleOrder
+{
+  width: 100%;
+  height: 20%;
+  display: inline-flex;
+  justify-content: space-between;
+}
+
+#titleOrder label
+{
+  display: inline-block;
+  font-family: Ubuntu;
+  font-size: 22px;
+  width: 110px;
+  color: #77777;
+  margin-left: 10%;
+  margin-top: 5%;
+  color: #505050;
+}
+
+.statisticsICO
+{
+  display: none;
+  width: 20px;
+  height: 25px;
+  margin-right: 5%;
+  margin-top: 4%;
+}
+
+#client
+{
+  text-align: left;
+}
+
+#bodyOrder
+{
+  display: inline-block;
+  width: 100%;
+  height: 80%;
+  text-align: center;
+  vertical-align: bottom;
+}
+
+#bodyClient
+{
+  display: inline-block;
+  width: 100%;
+  height: 40%;
+  text-align: center;
+  vertical-align: bottom;
+}
+
+#bodyMore
+{
+  display: inline-block;
+  width: 100%;
+  height: 40%;
+  text-align: center;
+  vertical-align: bottom;
+}
+
+#bodyClient div, #bodyMore div
+{
+  display: inline-block;
+  width: 90%;
+  margin-top: 4%;
+}
+
+#bodyClient label, #bodyMore label
+{
+  font-size: 18px;
+  font-family: Ubuntu;
+  font-weight: 600;
+  margin-left: 10%;
+  margin-right: 5%;
+  color: #505050;
+  float: left;
+}
+
+.order:hover
+{
+  z-index: 0;
+  transition: all 200ms ease-in;
+  transform: scale(1.04);
+  box-shadow: 3px 0px 2em rgba(0, 0, 0, 0.1);
+}
+
+.order:hover .statisticsICO
+{
+  display: block;
+}
+
+.order:hover #titleOrder label
+{
+  transition: all 200ms ease-in;
+}
+
+.order:hover #bodyClient label, .order:hover #bodyMore label
+{
+  transition: all 200ms ease-in;
+}
+
+@media screen and (max-width:1280px), screen and (max-height:720px)
+{
+  #nameUser
+  {
+    font-family: Ubuntu;
+    font-size: 14px;
+    width: 75%;
+  }
+
+  #exit
+  {
+    width: 15px;
+    height: 15px;
+    margin-right: 5%;
+  }
+
+  .sidebar #logo
+  {
+    width: 20px;
+    height: 25px;
+  }
+}
+
+@media screen and (min-width:1600px) and (max-width:1919px)
+{
+  .order
+  {
+    width: 19%;
+    height: 320px;
+  }
+
+  #bodyClient label, #bodyMore label
+  {
+    font-size: 16px;
+  }
+
+}
+
+@media screen and (min-width:1400px) and (max-width:1599px)
+{
+  .order
+  {
+    width: 24%;
+    height: 320px;
+  }
+
+  #bodyClient label, #bodyMore label
+  {
+    font-size: 16px;
+  }
+}
+
+@media screen and (min-width:1360px) and (max-width:1399px)
+{
+  .order
+  {
+    width: 19%;
+    height: 260px;
+  }
+
+  #bodyClient label, #bodyMore label
+  {
+    font-size: 14px;
+  }
+}
+
+@media screen and (min-width:1280px) and (max-width:1359px)
+{
+  .order
+  {
+    width: 19%;
+    height: 240px;
+  }
+
+  #bodyClient label, #bodyMore label
+  {
+    font-size: 12px;
+  }
+}
+
+@media screen and (min-width:1024px) and (max-width:1279px)
+{
+  .order
+  {
+    width: 19%;
+    height: 240px;
+  }
+
+  #bodyClient label, #bodyMore label
+  {
+    font-size: 12px;
+  }
+}
+
+@media screen and (min-width:480px) and (max-width:768px)
+{
+  .order
+  {
+    width: 49%;
+    height: 500px;
+  }
+
+  #bodyClient label, #bodyMore label
+  {
+    font-size: 28px;
+  }
+}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="main.css" rel="stylesheet">
+  <link href="../resources/animate.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>SIS</title>
+
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <!-- <script src="../main/logic.js"></script> -->
+  <script src="../main/table.js"></script>
+  <script src="../main/head.js"></script>
+  <script src="../main/operations.js"></script>
+
+  <script>if (window.module) module = window.module;</script>
+</head>
+<body class="animated fadeInDown">
+  <div id='head' class="Head">
+      <div id="controls">
+        <img class="controls" id="arrow" src="../resources/arrow1.png"></img>
+      </div>
+      <div class="Field"><label>Номер заказа</label><br><label id="Order"></label></div>
+      <div class="Field"><label>Клиент</label><br><label id="Client"></label></div>
+      <div class="Field"><label>Декор</label><br><label id="Decor"></label></div>
+      <div class="Field"><label>Ширина</label><br><label id="Weight"></label></div>
+      <div class="Field"><label>Количество</label><br><label id="Count"></label></div>
+      <div class="user"><label id="User"></label></div>
+  </div>
+  <div class="OperationsTitle">
+      <h3>Операции<h3>
+      <button id='closeOrder'>Закрыть заказ</button>
+  </div>
+  <div id="tableBlock">
+    <div id="warningCloseOrder">
+      <div id="warning">Операции недоступны - заказ закрыт</div>
+    </div>
+    <table class="TableOperations" id="panel">
+      <thead>
+        <th class="titleTable">Наладка</th>
+        <th class="titleTable">Цветоподбор</th>
+        <th class="titleTable">Печать</th>
+        <th class="titleTable">Простои ПЗ</th>
+        <th class="titleTable">Простои техники</th>
+        <th class="titleTable">Остановка программы</th>
+      </thead>
+      <tr>
+        <td class="adjustment" tabindex="1">Основная</td>
+        <td class="adjustment" tabindex="4">Стандартный</td>
+        <td class="print" tabindex="11">Печать ПЗ</td>
+        <td class="downtime" tabindex="12">Отсутствие ПЗ</td>
+        <td class="downtime" tabindex="18">Прессер</td>
+        <td class="stop" tabindex="22">Техобслуживание</td>
+      </tr>
+      <tr>
+        <td class="adjustment" tabindex="2">Смена формата</td>
+        <td class="adjustment" tabindex="5">Новый замес</td>
+        <td></td>
+        <td class="downtime" tabindex="13">Отсутствие сырья</td>
+        <td class="downtime" tabindex="19">Формный вал</td>
+        <td class="stop" tabindex="23">Тест</td>
+      </tr>
+      <tr>
+        <td class="adjustment" tabindex="3">Замывка</td>
+        <td class="adjustment" tabindex="6">Подбор с клиентом</td>
+        <td></td>
+        <td class="downtime" tabindex="14">Другое</td>
+        <td class="dropbtn" tabindex="20">
+          <label class="dropbtn">Механика</label>
+          <div class="dropdown-content">
+            <a tabindex="1">Размотка</a>
+            <a tabindex="2">Подача</a>
+            <a tabindex="3">Печатная секция</a>
+            <a tabindex="4">Выдача</a>
+            <a tabindex="5">Намотка</a>
+            <a tabindex="6">Проводка</a>
+            <a tabindex="7">Сушка</a>
+          </div>
+          <div class="downCursor"></div>
+        </td>
+        <td class="stop" tabindex="24">Отсутствие персонала</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="adjustment" tabindex="7">Смена партий бумаги</td>
+        <td></td>
+        <td class="dropbtn" tabindex="15">
+          <label class="dropbtn">Обрыв склейка</label>
+          <div class="dropdown-content">
+              <a tabindex="1">Размотка</a>
+              <a tabindex="2">Подача</a>
+              <a tabindex="3">Печатная секция</a>
+              <a tabindex="4">Выдача</a>
+              <a tabindex="5">Намотка</a>
+            </div>
+            <div class="downCursor"></div>
+          </td>
+        <td class="dropbtn" tabindex="21">
+          <label class="dropbtn">Электрика</label>
+          <div class="dropdown-content">
+            <a tabindex="1">Размотка</a>
+            <a tabindex="2">Подача</a>
+            <a tabindex="3">Печатная секция</a>
+            <a tabindex="4">Выдача</a>
+            <a tabindex="5">Намотка</a>
+            <a tabindex="6">Проводка</a>
+            <a tabindex="7">Сушка</a>
+          </div>
+          <div class="downCursor"></div>
+        </td>
+        <td class="stop" tabindex="25">Уборка</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="adjustment" tabindex="8">Смена типа бумаги</td>
+        <td></td>
+        <td class="dropbtn" tabindex="16">
+          <label class="dropbtn">Обрыв при смене рулона</label>
+          <div class="dropdown-content">
+            <a tabindex="1">Размотка</a>
+            <a tabindex="2">Подача</a>
+            <a tabindex="3">Печатная секция</a>
+            <a tabindex="4">Выдача</a>
+            <a tabindex="5">Намотка</a>
+          </div>
+          <div class="downCursor"></div>
+        </td>
+        <td></td>
+        <td class="stop" tabindex="26">Выходные или праздники</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="adjustment" tabindex="9">Смена граммовости</td>
+        <td></td>
+        <td class="dropbtn" tabindex="17">
+          <label class="dropbtn">Обрыв при проводке</label>
+          <div class="dropdown-content">
+            <a tabindex="1">Размотка</a>
+            <a tabindex="2">Подача</a>
+            <a tabindex="3">Печатная секция</a>
+            <a tabindex="4">Выдача</a>
+            <a tabindex="5">Намотка</a>
+          </div>
+          <div class="downCursor"></div>
+        </td>
+        <td></td>
+        <td class="stop" tabindex="27">Другие</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="adjustment" tabindex="10">Смена ракелей</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+  <div class="StatusOperationsTitle">
+    <h3>Статус операций</h3>
+  </div>
+
+  <div class="operations" id="activeOperations">
+      <h1> Нет данных </h1>
+  </div>
+</body>
+</html>
