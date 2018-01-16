@@ -220,5 +220,4 @@ function deleteErrorDisplay() {
 
 function f() {
   console.log('f');
-  console.log('d');
 }
