@@ -5,10 +5,10 @@ const remote = require('electron').remote;
 let countOperation = 0;
 
 //Псевдоконстанта для увелечения tabIndex
-let lastIndex      = 27;
+let lastIndex      = 28;
 
 //Содержит последнюю операцию на экране, чтобы возвращать на нее фокус
-let lastActiveElement;
+let lastActiveElement = null;
 
 //Содержит статус заказа
 let status;
@@ -16,6 +16,7 @@ let status;
 //Содержит сам заказ
 let _order;
 
+let allOutOperationsOnDisplay = true;
 window.addEventListener('load', function () {
 
     ipcRenderer.on('getOperations', function (event, order, focusIndex) {
@@ -24,26 +25,26 @@ window.addEventListener('load', function () {
 
         switch (status) {
           case 'run':
-            console.log('Status: RUN');
+            allOutOperationsOnDisplay = false;
             for (let i = 0; i < order.info.length; i++) {
               outOperation(order.info[i], focusIndex);
+              if (i === order.info.length - 1) {
+                allOutOperationsOnDisplay = true;
+              }
             }
           break;
 
           case 'close':
-            console.log('Status: CLOSE');
             for (let i = 0; i < order.info.length; i++) {
               outOperation(order.info[i]);
             }
             document.getElementById('panel').style.pointerEvents            = 'none';
             document.getElementById('closeOrder').style.pointerEvents       = 'none';
             document.getElementById('activeOperations').style.pointerEvents = 'none';
-            document.getElementById('warningCloseOrder').style.display      = 'inline-flex';
+            document.getElementById('block_warning').style.display      = 'inline-flex';
           break;
 
           default:
-            console.log('Status: OPEN');
-            console.log(order.info);
         }
     });
 
@@ -56,7 +57,7 @@ window.addEventListener('load', function () {
         document.getElementById('panel').style.pointerEvents            = 'none';
         document.getElementById('closeOrder').style.pointerEvents       = 'none';
         document.getElementById('activeOperations').style.pointerEvents = 'none';
-        document.getElementById('warningCloseOrder').style.display      = 'inline-flex';
+        document.getElementById('block_warning').style.display          = 'inline-flex';
     });
 });
 
@@ -105,6 +106,7 @@ function outOperation(operation, focusIndex) {
 
   switch (status) {
     case 'run':
+      ipcRenderer.send('setOrderRun', _order.id);
       clearTemplate();
       if (checkRetryOperation(operation[1])) return true;
     break;
@@ -127,20 +129,19 @@ function outOperation(operation, focusIndex) {
       clearTemplate();
       status = 'run';
   }
+  document.getElementById('activeOperations').innerHTML += getTemplateBlock(operation);
+  setFocus(focusIndex);
+}
 
-  let operationBlock = getTemplateBlock(operation);
-  document.getElementById('activeOperations').innerHTML += operationBlock;
-
+function setFocus(focusIndex) {
   let operationsBlock = document.getElementsByName('operationsBlock');
   if (focusIndex) {
     for (let i = 0; i < operationsBlock.length; i++) {
-      if (operationsBlock[i].tabIndex == focusIndex) {
+      if (operationsBlock[i].tabIndex === focusIndex) {
         operationsBlock[i].focus();
         return true;
       }
     }
-  } else {
-    operationsBlock[operationsBlock.length-1].focus();
   }
 }
 
@@ -150,7 +151,7 @@ function checkRetryOperation(nameOperation) {
   let operationsBlock = document.getElementsByName('operationsBlock');
   for (let i = 0; i < operationsBlock.length; i++) {
     let nameOperationBlock = operationsBlock[i].querySelector('#type').textContent;
-    if (nameOperationBlock == nameOperation) {
+    if (nameOperationBlock === nameOperation) {
       operationsBlock[i].focus();
       return true;
     }
@@ -165,14 +166,18 @@ function getFocus() {
   if (lastActiveElement == document.activeElement) {
     return false;
   } else {
+
     lastActiveElement = document.activeElement;
     changeColorOperation();
-    let classOperation = document.activeElement.querySelector('#class').textContent;
-    let nameOperation  = document.activeElement.querySelector('#type').textContent;
-    let timeOperation  = Number(document.activeElement.querySelector('#min').textContent);
-    let tabindex       = document.activeElement.tabIndex;
-    let programmClass  = document.activeElement.className;
-    ipcRenderer.send('startOperation', [classOperation, nameOperation, timeOperation, programmClass, tabindex]);
+
+    if (allOutOperationsOnDisplay) {
+      let classOperation = document.activeElement.querySelector('#class').textContent;
+      let nameOperation  = document.activeElement.querySelector('#type').textContent;
+      let timeOperation  = Number(document.activeElement.querySelector('#min').textContent);
+      let tabindex       = document.activeElement.tabIndex;
+      let programmClass  = document.activeElement.className;
+      ipcRenderer.send('startOperation', [classOperation, nameOperation, timeOperation, programmClass, tabindex]);
+    }
   }
 }
 

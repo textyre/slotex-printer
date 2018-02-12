@@ -2,8 +2,10 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link href="../main/main.css" rel="stylesheet">
+  <link href="../headStyle.css" rel="stylesheet">
+  <link href="../generalStyle.css" rel="stylesheet">
   <link href="statistics.css" rel="stylesheet">
+  <link href="https://afeld.github.io/emoji-css/emoji.css" rel="stylesheet">
   <meta charset="UTF-8">
   <title>SIS</title>
 
@@ -13,14 +15,18 @@
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.js"></script>
   <script src="statistics.js"></script>
+  <script src="head.js"></script>
+  <script src="chartTotal.js"></script>
+  <script src="statisticsDetail.js"></script>
+  <script src="operationHistory.js"></script>
+
 
   <script>if (window.module) module = window.module;</script>
 </head>
 <body>
   <div class="Head">
-      <div id="controls">
+      <div id="block_controls">
         <img class="controls" id="arrow" src="../resources/arrow1.png"></img>
-        <img class="controls" id="update" src="../resources/update.png"></img>
       </div>
       <div class="Field"><label>Номер заказа</label><br><label id="Order">D0004</label></div>
       <div class="Field"><label>Клиент</label><br><label id="Client">Петербургский ламинат</label></div>
@@ -29,52 +35,53 @@
       <div class="Field"><label>Количество</label><br><label id="Count">1500</label></div>
       <div class="user"><label id="User">Павел Бригадиров</label></div>
   </div>
-  <div class="OperationsTitle">
+  <div class="Title firstTitle">
       <h3>Статистика<h3>
   </div>
   <div id="bodyStatistics">
     <div id="statisticsChartTotal">
       <div id="dateTime">
+        <div class="titleBlocks"><label>Начало и конец выполнения заказа</label></div>
         <div class="blockDateTime">
           <div class="titleBlockDateTime"><label>Дата начала</label></div>
-          <div id="timeBegin" class="dataBlockDateTime"><label>10-11-2017 14:10</label></div>
+          <div class="dataBlockDateTime"><label id="timeBegin"></label></div>
         </div>
         <div class="blockDateTime">
           <div class="titleBlockDateTime"><label>Дата закрытия</label></div>
-          <div id="timeEnd" class="dataBlockDateTime"><label>10-11-2017 15:38</label></div>
+          <div class="dataBlockDateTime"><label id="timeEnd"></label></div>
         </div>
       </div>
       <div id="charts">
-        <label id="titleDetail">Количество минут на класс операций</label>
+        <div class="titleBlocks"><label>Количество минут на класс операций</label></div>
         <canvas id="myChart"></canvas>
       </div>
 
       <div id="total">
-        <div id="useful">
+        <div class="useful">
           <label class="titleTime">Полезное время</label>
-          <label class="totalTime">340 / 5.6</label>
+          <label class="totalTime" id="useful">340 / 5.6</label>
           <div class="percent">
-            <label>10.87%</label>
+            <label id="usefulPercent">10.87%</label>
           </div>
           <!-- <label class="percent">10.87%</label> -->
           <div class="color-line"></div>
         </div>
 
-        <div id="unhelpful">
+        <div class="unhelpful">
           <label class="titleTime">Неполезное время</label>
-          <label class="totalTime">108 / 1.8</label>
+          <label class="totalTime" id="unhelpful">108 / 1.8</label>
           <div class="percent">
-            <label>2.89%</label>
+            <label id="unhelpfulPercent">2.89%</label>
           </div>
           <!-- <label class="percent">2.89%</label> -->
           <div class="color-line"></div>
         </div>
 
-        <div id="necessary">
+        <div class="necessary">
           <label class="titleTime">Необходимое время</label>
-          <label class="totalTime">300 / 5</label>
+          <label class="totalTime" id="necessary">300 / 5</label>
           <div class="percent">
-            <label>86.23%</label>
+            <label id="necessaryPercent">86.23%</label>
           </div>
           <!-- <label class="percent">86.23%</label> -->
           <div class="color-line"></div>
@@ -83,112 +90,15 @@
     </div>
 
     <div id="statisticsDetail">
-      <label id="titleDetail">Количество минут/часов на операцию</label>
+      <div class="titleBlocks"><label>Количество минут/часов на операцию</label></div>
       <div id="detail">
-        <div id="printBlock" class="block">
-          <label id="print">Печать</label>
-          <label id="printTime">123 / 2.05</label>
-        </div>
-
-        <div class="block adjust">
-          <div class="titleBlock">
-            <label class="title">Наладка</label>
-          </div>
-
-          <div class="dataBlock">
-            <div class="data"><label class="dataTitle">Основная</label><br><br><label class="dataMain">123 / 2.05</label></div>
-            <div class="data"><label class="dataTitle">Смена формата</label><br><br><label class="dataMain">50 / 0.9</label></div>
-            <div class="data"><label class="dataTitle">Замывка</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Еще</label><br><br><label class="dataMain">20 / 0.3</label></div>
-          </div>
-        </div>
-
-        <div class="block adjust">
-          <div class="titleBlock">
-            <label class="title">Цветоподбор</label>
-          </div>
-
-          <div class="dataBlock">
-            <div class="data"><label class="dataTitle">Стандартный</label><br><br><label class="dataMain">123 / 2.05</label></div>
-            <div class="data"><label class="dataTitle">Новый замес</label><br><br><label class="dataMain">50 / 0.9</label></div>
-            <div class="data"><label class="dataTitle">Поставщик</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Смена типа бумаги</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Смена партий бумаги</label><br><br><label class="dataMain">20 / 0.3</label></div>
-          </div>
-        </div>
-        <div class="block down">
-          <div class="titleBlock">
-            <label class="title">Простой техники</label>
-          </div>
-
-          <div class="dataBlock">
-            <div class="data"><label class="dataTitle">Прессер</label><br><br><label class="dataMain">123 / 2.05</label></div>
-            <div class="data"><label class="dataTitle">Электрика - подача</label><br><br><label class="dataMain">50 / 0.9</label></div>
-            <div class="data"><label class="dataTitle">Механика - подача</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Электрика - проводка</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Отсутствие сырья</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Отсутствие ПЗ</label><br><br><label class="dataMain">20 / 0.3</label></div>
-
-          </div>
-        </div>
-        <div class="block down">
-          <div class="titleBlock">
-            <label class="title">Простой ПЗ</label>
-          </div>
-
-          <div class="dataBlock">
-            <div class="data"><label class="dataTitle">Прессер</label><br><br><label class="dataMain">123 / 2.05</label></div>
-            <div class="data"><label class="dataTitle">Электрика - подача</label><br><br><label class="dataMain">50 / 0.9</label></div>
-            <div class="data"><label class="dataTitle">Механика - подача</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Электрика - проводка</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Отсутствие сырья</label><br><br><label class="dataMain">20 / 0.3</label></div>
-            <div class="data"><label class="dataTitle">Отсутствие ПЗ</label><br><br><label class="dataMain">20 / 0.3</label></div>
-
-          </div>
-        </div>
-        <div class="block stop">
-          <div class="titleBlock">
-            <label class="title">Остановка программы</label>
-          </div>
-
-          <div class="dataBlock">
-            <div class="data"><label class="dataTitle">Прессер</label><br><br><label class="dataMain">123 / 2.05</label></div>
-            <div class="data"><label class="dataTitle">Электрика - подача</label><br><br><label class="dataMain">50 / 0.9</label></div>
-            <div class="data"><label class="dataTitle">Механика - подача</label><br><br><label class="dataMain">20 / 0.3</label></div>
-
-          </div>
-        </div>
       </div>
     </div>
   </div>
-  <div class="OperationsTitle">
+  <div class="Title">
       <h3>История операций<h3>
   </div>
   <div id="historyOperation">
-    <div class="operation">
-      <label class="titleOperation">Наладка</label>
-      <div class="dataOperation">
-        <div class="DataOperationData"><label class="titleDataOperation">Начало</label><br><label class="beginTimeData">01-11-2017 10:30</label></div>
-        <div class="DataOperationData"><label class="titleDataOperation">Конец</label><br><label class="endTimeData">01-11-2017 12:30</label></div>
-        <div class="DataOperationData"><label class="titleDataOperation">Время</label><br><label class="timeData">120</label></div>
-      </div>
-    </div>
-    <div class="operation">
-      <label class="titleOperation">Смена ракелей</label>
-      <div class="dataOperation">
-        <div class="DataOperationData"><label class="titleDataOperation">Начало</label><br><label class="beginTimeData">01-11-2017 10:30</label></div>
-        <div class="DataOperationData"><label class="titleDataOperation">Конец</label><br><label class="endTimeData">01-11-2017 10:30</label></div>
-        <div class="DataOperationData"><label class="titleDataOperation">Время</label><br><label class="timeData">120</label></div>
-      </div>
-    </div>
-    <div class="operation">
-      <label class="titleOperation">Обрыв склейка - Проводка</label>
-      <div class="dataOperation">
-        <div class="DataOperationData"><label class="titleDataOperation">Начало</label><br><label class="beginTimeData">01-11-2017 10:30</label></div>
-        <div class="DataOperationData"><label class="titleDataOperation">Наладка</label><br><label class="endTimeData">01-11-2017 10:30</label></div>
-        <div class="DataOperationData"><label class="titleDataOperation">Время</label><br><label class="timeData">120</label></div>
-      </div>
-    </div>
   </div>
 </body>
 </html>

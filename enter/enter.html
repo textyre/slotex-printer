@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <link href="../dropdown.css" rel="stylesheet">
   <link href="enter.css" rel="stylesheet">
   <meta charset="UTF-8">
   <title>SIS</title>
   <script src="enter.js"></script>
 </head>
 <body>
-  <div class = "entry">
+  <!-- <div class = "entry">
     <div class = "logo">
-      <img src="../resources/logo.png" style="width:170px;height:67px;">
     </div>
     <div id='users'>
 
@@ -17,6 +17,14 @@
     <div class = "button">
       <button id="enterBttn">Войти</button>
     </div>
+  </div> -->
+  <div class="block_auth" id="block_auth">
+    <div class="block_inputAuth_listUser">
+      <input  id="inputFIO"  class="input_auth" placeholder="Введите ФИО"></input>
+      <div id="list" class="dropdown-content">
+      </div>
+    </div>
+    <button id="enterBttn" class="enterBttn">Войти</button>
   </div>
 </body>
 </html>

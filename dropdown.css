@@ -1,0 +1,30 @@
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #FAFAFA;
+    box-shadow: 4px 4px 16px 0px rgba(0,0,0,0.3);
+    z-index: 1;
+}
+
+.dropdown-content a {
+    display: block;
+
+    text-decoration: none;
+
+    font-family: Ubuntu;
+    font-weight: 600;
+    color: #555555;
+    background-color: #FAFAFA;
+
+    z-index: 1;
+}
+
+.dropdown-content a:focus, .dropdown-content a:hover
+{
+  color: white;
+}
+
+.show
+{
+  display:block;
+}

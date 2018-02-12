@@ -16,10 +16,8 @@ window.onload = function windowLoad() {
         classOperation = getClassOperation($(this));
         nameOperation = event.target.textContent;
 
-        console.log('Класс операции: ' + classOperation + '   Имя операции:  ' + nameOperation);
-
         operation = [classOperation, nameOperation, 0];
-        outOperation(operation);
+        outOperation(operation, lastIndex);
       }
   });
 
@@ -50,10 +48,8 @@ window.onload = function windowLoad() {
   $('a').click(function () {
       nameOperation += ' - ' + event.target.textContent;
 
-      console.log('Класс операции: ' + classOperation + '   Имя операции:  ' + nameOperation);
-
       operation = [classOperation, nameOperation, 0];
-      outOperation(operation);
+      outOperation(operation, lastIndex);
   });
 
   //Скрываем выпадающий список, если нажатие по экрану

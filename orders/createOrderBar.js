@@ -1,6 +1,7 @@
 let clients;
 let decors;
 var eventTarget;
+let nameInput;
 
 window.addEventListener('click', function () {
     switch (event.target.id) {
@@ -9,12 +10,14 @@ window.addEventListener('click', function () {
 
         if (event.target.id != 'inputClient' &&
             event.target.id != 'inputDecor'  &&
-            event.target.id != 'list') closeList();
+            event.target.id != 'list'        &&
+            event.target.className != 'btnDeleteClientDecor') closeList();
     }
+    console.log(event.target);
 });
 
 ipcRenderer.on('getClients', function (event, objectClients) {
-    clients = objectClients.client;
+    clients = objectClients.clients;
 });
 
 ipcRenderer.on('getDecors', function (event, objectDecors) {
@@ -29,17 +32,31 @@ window.addEventListener('load', function () {
     let btnCreateOrder = document.getElementById('btnCreateOrder');
 
     inputClient.addEventListener('focus', function () {
-        eventTarget = event.target;
-        document.getElementById("list").innerHTML = '';
-        showList();
-        outClientsInList();
+        if (remote.getGlobal('ordersData')[0].clients) {
+          nameInput   = 'clients';
+          eventTarget = event.target;
+
+          document.getElementById("list").innerHTML = '';
+
+          showList();
+          outClientsDecorsInList(remote.getGlobal('ordersData')[0].clients);
+        } else {
+          closeList();
+        }
     });
 
     inputDecor.addEventListener('focus', function() {
-        eventTarget = event.target;
-        document.getElementById("list").innerHTML = '';
-        showList();
-        outDecorsInList();
+        if (remote.getGlobal('ordersData')[1].decors.length) {
+          nameInput = 'decors';
+          eventTarget = event.target;
+
+          document.getElementById("list").innerHTML = '';
+
+          showList();
+          outClientsDecorsInList(remote.getGlobal('ordersData')[1].decors);
+        } else {
+          closeList();
+        }
     });
 
     btnAddOrder.addEventListener('click', function () {
@@ -57,31 +74,45 @@ window.addEventListener('load', function () {
     btnCreateOrder.addEventListener('click', function () {
         createOrder();
     });
+
 });
 
 function showList() {
   document.getElementById('list').classList.add('visible');
-  main.style.position = 'fixed';
 }
 
 function closeList() {
   document.getElementById("list").innerHTML = '';
   document.getElementById('list').classList.remove('visible');
-  main.style.position = 'static';
 }
 
-function outClientsInList() {
+function outClientsDecorsInList(clientsDecors) {
   let list = document.getElementById('list');
-  for (let i = 0; i < clients.length; i++) {
-    list.innerHTML += '<div class="listitem">' + clients[i] + '</div>'
+      list.innerHTML += addTitleList();
+  for (let i = 0; i < clientsDecors.length; i++) {
+    list.innerHTML += '<div class="listitem animated fadeInUp">' + clientsDecors[i] + '<img class="btnDeleteClientDecor" src="../resources/delete.png" onclick="deleteClientsDecors()"/></div>'
   }
 }
 
-function outDecorsInList() {
-  let list = document.getElementById('list');
-  for (let i = 0; i < decors.length; i++) {
-    list.innerHTML += '<div class="listitem">' + decors[i] + '</div>'
+function deleteClientsDecors () {
+  let listitem = document.getElementsByClassName('listitem'),
+      indexItem;
+
+  for (let i = 0; i < listitem.length; i++) {
+    listitem = document.getElementsByClassName('listitem');
+    if (listitem[i] === event.target.parentNode) {
+      indexItem = i;
+    }
   }
+  ipcRenderer.send('deleteClientOrder', nameInput, indexItem);
+  event.target.parentNode.remove();
+}
+
+function addTitleList() {
+  return '<div class="container_titleList"><div class="titleList"> \
+            <label>Выберите из списка</label> \
+            <img class="listICO" src="../resources/list.png" /> \
+          </div></div>'
 }
 
 function setDataInput(eventTarget) {
@@ -109,20 +140,23 @@ function createOrder() {
     timezone: 'UTC'
   };
 
-  let date = new Date().toLocaleString("sq", options);
   if (order  != '' && order  != undefined &&
       client != '' && client != undefined &&
       decor  != '' && decor  != undefined &&
       weight != '' && weight != undefined &&
       count  != '' && count  != undefined) {
+          order  = order.trim();
+          client = client.trim();
+          decor  = decor.trim();
+
           let objectOrder =
           {
             "id":          order,
             "client":      client,
             "decor":       decor,
-            "weight":      weight,
-            "count":       count,
-            "dateCreate":  date,
+            "weight":      Number(weight),
+            "count":       Number(count),
+            "dateCreate":  new Date().toISOString(),
             "beginDate":   "",
             "endDate":     "",
             "beginTime":   "",
@@ -136,7 +170,7 @@ function createOrder() {
             "status":      "open"
           };
           document.getElementById('main').innerHTML = "";
-          ipcRenderer.send("createOrder", objectOrder)
+          ipcRenderer.send("createOrder", objectOrder);
     } else {
       console.log('Пустые поля');
     }

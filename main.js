@@ -1,12 +1,16 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const fs                              = require('fs');
 var mongoConnection                   = require('./mongoConnect');
+var dateModule                        = require('./date');
 
 let win; //Окно
 
 global.orders     = []; //Хранятся заказы из БД
-var foundOrders      = []; //Хранятся ID заказов
-var ordersData    = []; //Хранятся клиенты и декоры
+global.ordersData = []; //Хранятся клиенты и декоры
+global.moveBetweenDisplay = false;
+
+var foundOrders   = []; //Хранятся найденны заказы
+var idFoundOrders = []; //Хранятся id найденных заказов
 var users         = []; //Список юзеров
 var userName      = null; //Имя текущего юзера
 
@@ -18,6 +22,18 @@ var positionTo    = 0; //Позиция, по которую выводим вн
 
 var BlockIntervalID = null; //Для интервалов
 let focusIndex      = null; //Для возврата фокуса
+let sync = true;
+
+var beginDateOperation = null; //Начальное время запуск операции
+var lastTimeOperation  = 0;
+
+var nameOperation      = null;
+var historyOperations  = [];
+
+var sampleDate = '';
+
+var outPanel = false;
+
 
 //При запуске приложения получаем юзеров или ошибку
 app.on('ready', () => {
@@ -31,12 +47,13 @@ app.on('ready', () => {
         }
     });
     win.loadURL(`file://${__dirname}/enter/enter.html`);
-
-    mongoConnection.connect(function (err) {
-        if (err) console.log(err);
-    });
 });
 
+
+app.on('before-quit', (event) => {
+    stopOperation();
+    mongoConnection.closeConnect();
+});
 
 //Обработка открытия окон
 //Окно входа - если юзеры загружены, то отдаеть, иначе загрузить
@@ -44,19 +61,26 @@ app.on('ready', () => {
 //Окно панели, статистики  - принимается ID заказов и запускается окно
 
 ipcMain.on('openWindow', function (event, arg) {
+
     switch (arg[0]) {
       case 'enterWindow':
-        if (users.length == 0) {
-          getUsers(event);
-        } else {
-          event.sender.send('getUsers', users);
-        }
+        mongoConnection.connect(function (err) {
+            if (err) console.log(err);
+            mongoConnection.mongo.users.find().toArray(function (err, result) {
+                if (err) console.log(err);
+                event.sender.send('getUsers', result[0].users);
+                users = result[0].users;
+            });
+        });
       break;
 
       case 'ordersWindow':
         if (userName == null && arg[1] != null && arg[1] != undefined) userName = arg[1];
         win.loadURL(`file://${__dirname}/orders/orders.html`);
         event.sender.send('result', 'open');
+        if (arg[1] === 'panelWindow') {
+          moveBetweenDisplay = true;
+        }
       break;
 
       case 'panelWindow':
@@ -68,6 +92,12 @@ ipcMain.on('openWindow', function (event, arg) {
       case 'statisticsWindow':
         orderID = arg[1];
         win.loadURL(`file://${__dirname}/statistics/statistics.html`);
+        event.sender.send('result', 'open');
+      break;
+
+      case 'sumstatistics':
+        sampleDate = arg[1];
+        win.loadURL(`file://${__dirname}/sumstatistics/sumstatistics.html`);
         event.sender.send('result', 'open');
       break;
 
@@ -96,16 +126,48 @@ ipcMain.on('windowLoad', function (event, arg) {
         event.sender.send('getClients', ordersData[0]);
         event.sender.send('getDecors', ordersData[1]);
       }
+
     break;
 
     case 'panelWindow':
       for (let i = 0; i < orders.length; i++) {
-        if (orders[i].id == orderID) {
+        if (orders[i].id === orderID) {
           event.sender.send('getOrder', orders[i], userName);
           event.sender.send('getOperations', orders[i], focusIndex);
           return true;
         }
       }
+
+      for (let i = 0; i < foundOrders.length; i++) {
+        if (foundOrders[i].id === orderID) {
+          event.sender.send('getOrder', foundOrders[i], userName);
+          event.sender.send('getOperations', foundOrders[i], focusIndex);
+          return true;
+        }
+      }
+    break;
+
+    case 'statisticsWindow':
+      for (let i = 0; i < orders.length; i++) {
+        if (orders[i].id === orderID) {
+          getOperationsHistory(event, orderID);
+          event.sender.send('getOrder', orders[i], userName);
+          return true;
+        }
+      }
+
+      for (let i = 0; i < foundOrders.length; i++) {
+        if (foundOrders[i].id === orderID) {
+          getOperationsHistory(event, orderID);
+          event.sender.send('getOrder', foundOrders[i], userName);
+          return true;
+        }
+      }
+    break;
+
+    case 'sumstatistics':
+      event.sender.send('getSampleOrders', foundOrders);
+      event.sender.send('getUserNameAndRangeDate', userName, sampleDate);
     break;
 
     default:
@@ -119,20 +181,76 @@ ipcMain.on('windowLoad', function (event, arg) {
 //Очищаем orders, positionTo, positionAt и загружаем заново заказы (обновляем страницу таким образом)
 
 ipcMain.on('createOrder', function (event, order) {
-    let db = mongoConnection.getDb();
-    let result = db.collection('orders').insert(order, function (err, docsInserted) {
-        console.log(docsInserted);
+    let result = mongoConnection.mongo.orders.insert(order, function (err, docsInserted) {
         orders.length = 0;
         positionTo = 0;
         positionAt = 0;
         getOrders(event);
     });
+
+    searchClient(order.client);
+    searchDecor(order.decor);
+});
+
+function searchClient(client) {
+  for (let i = 0; i < ordersData[0].clients.length; i++) {
+    if (ordersData[0].clients[i] === client) {
+      return true;
+    }
+  }
+
+  addCLientInDb(client);
+}
+
+function searchDecor(decor) {
+  for (let i = 0; i < ordersData[1].decors.length; i++) {
+    if (ordersData[1].decors[i] === decor) {
+      return true;
+    }
+  }
+
+  addOrderInDb(decor);
+}
+
+function addCLientInDb(client) {
+  mongoConnection.mongo.ordersData.update(
+    { 'id': 'clients' },
+    { $push: { 'clients': client } },
+    (err, result) => {
+      if (err) console.log(err);
+      ordersData[0].clients.push(client)
+    });
+}
+
+function addOrderInDb(decor) {
+  mongoConnection.mongo.ordersData.update(
+    { 'id': 'decors' },
+    { $push: { 'decors': decor } },
+    (err, result) => {
+      if (err) console.log(err);
+      ordersData[1].decors.push(decor);
+    });
+}
+
+ipcMain.on('deleteClientOrder', function (event, nameArray, indexItem) {
+    let indexPasteOrderData;
+
+    if (nameArray === 'clients') {
+      ordersData[0].clients.splice(indexItem, 1);
+      indexPasteOrderData = 0;
+    } else if (nameArray === 'decors') {
+      ordersData[1].decors.splice(indexItem, 1);
+      indexPasteOrderData = 1;
+    }
+    mongoConnection.mongo.ordersData.update({ 'id': nameArray }, ordersData[indexPasteOrderData],
+    (err, docUpdated) => {
+      console.log(docUpdated);
+    });
 });
 
 
-//Если переданный флаг true, то загружаем заказы
-ipcMain.on('loadOrder', function (event, flag) {
-  if (flag) getOrders(event);
+ipcMain.on('loadOrder', function (event, arg) {
+    getOrders(event);
 });
 
 
@@ -158,21 +276,53 @@ ipcMain.on('getUsers', function (event, arg) {
     event.sender.send('setUsers', users);
 });
 
+ipcMain.on('deleteOrder', function (event, id) {
+    for (let i = 0; i < orders.length; i++) {
+      if (orders[i].id === id) {
+        orders.splice(i, 1);
+        deleteOrderInDb(id);
+        deleteHistoryOrderInDb(id);
+        if (orderRun === id) {
+          stopOperation();
+          orderRun = null;
+          historyOperations = [];
+        }
+        break;
+      }
+    }
+});
+
+function deleteOrderInDb(id) {
+  mongoConnection.mongo.orders.remove({ 'id': id },
+  {
+    justOne: true
+  });
+}
+
+function deleteHistoryOrderInDb(id) {
+  mongoConnection.mongo.ordersHistory.remove({ 'id': id },
+  {
+    justOne: true
+  });
+}
+
 
 //Загрузка заказов
 //Подключаемся к БД, пропускаем n-позиций, которые уже были загружены
-//Лимит 15 заказов, чтобы не нагружать
+//Лимит 15 заказов, чтобы не нагружать сеть
 //Сортировка: с последних созданных
 //Кладем документы в массив, ID заказов кладем в массив и увеличиваем positionTo++ для следующих запросов
 //Если positionTo == positionAt, то не даем больше загружать документы, иначе прокрутка вниз вызовет загрузку
 //Устанавливаем positionAt = positionTo
 
 function getOrders(event) {
-  let db = mongoConnection.getDb();
-
-  let cursor = db.collection('orders').find().skip(positionTo).limit(2).sort({ 'dateCreate': -1 });
+  let cursor = mongoConnection.mongo.orders.find().skip(positionTo).limit(15).sort({ 'dateCreate': -1 });
   cursor.forEach(function (doc) {
     orders.push(doc);
+    if (doc.status === 'run') {
+      orderRun = doc.id;
+      getOperationsHistory(undefined, orderRun);
+    }
     positionTo++;
   }, function (err) {
       if (positionTo == positionAt) {
@@ -185,16 +335,38 @@ function getOrders(event) {
 }
 
 
+function getOperationsHistory(event, id) {
+
+  let cursor = mongoConnection.mongo.ordersHistory
+  .find({ 'id': id }, { 'history': 1, '_id': 0 } );
+
+  cursor.forEach(
+    resultHistory => {
+      console.log('event=', event);
+      if (event === undefined) {
+        historyOperations = resultHistory.history;
+        console.log('historyOperations =', historyOperations);
+      } else {
+        event.sender.send('getOperationsHistory', resultHistory.history);
+      }
+    },
+
+    error => {
+      console.log(error);
+    });
+}
+
+
 //Подключаем к БД и загружаем клиентов с декорами, заносим в массив
 function getData(event) {
-  let db = mongoConnection.getDb();
-  let cursor = db.collection('ordersData').find();
+  let cursor = mongoConnection.mongo.ordersData.find();
   cursor.forEach(function (doc) {
     ordersData.push(doc);
   }, function (err) {
       if (err) {
         console.log(err);
       } else {
+        console.log(ordersData);
         event.sender.send('getClients', ordersData[0]);
         event.sender.send('getDecors', ordersData[1]);
         return true;
@@ -205,8 +377,7 @@ function getData(event) {
 
 //Подключаемся к БД и загружаем юзеров
 function getUsers(event) {
-  let db = mongoConnection.getDb();
-  let cursor = db.collection('users').find();
+  let cursor = mongoConnection.mongo.users.find();
   cursor.forEach(function (doc) {
     users.push(doc);
   }, function (err) {
@@ -224,40 +395,32 @@ ipcMain.on('removeOrdersID', function (event, arg) {
 });
 
 ipcMain.on('timeSearchInDB', function (event, fromDate = null, toDate = null, fromTime = null, toTime = null) {
-    console.log('=======TIME SEARCH IN DB=========');
     foundOrders = [];
-    console.log(fromDate, toDate, fromTime, toTime);
-    let cursor = run(fromDate, toDate, fromTime, toTime);
+
+    let cursor = execute(fromDate, toDate, fromTime, toTime);
     cursor.sort({ 'dateCreate': -1 })
     .toArray(function (err, uploadOrders) {
         if (err) {
           console.log(err);
           return false;
         }
-        uploadOrders = checkSameOrder(uploadOrders);
 
         if (uploadOrders.length) {
-          console.log('=======КОЛИЧЕСТВО ЗАКАЗОВ: ' + uploadOrders.length + ' =========');
-          console.log(uploadOrders);
-          console.log('===========================');
-
-          addOrderToOrderID(uploadOrders, event);
+          event.sender.send('foundOrders', uploadOrders);
+          foundOrders = uploadOrders;
         } else {
           event.sender.send('error_notFound', null);
-          console.log('Ничего не загрузилось');
         }
     });
 });
 
-function run(fromDate, toDate, fromTime, toTime) {
-  let db = mongoConnection.getDb();
-  console.log('run');
+function execute(fromDate, toDate, fromTime, toTime) {
   console.log(fromDate, toDate, fromTime, toTime);
   if (fromDate !== null) {
       if (toDate !== null) {
         if (fromTime !== null && toTime !== null) {
-          //Если начальная дата, и конечная, и начальное время, и конечное время
-          return db.collection('orders')
+          //Начальная, конечная, начальное, конечное
+          return mongoConnection.mongo.orders
           .find({
                   $and: [
                           {
@@ -267,23 +430,23 @@ function run(fromDate, toDate, fromTime, toTime) {
                                         }
                           },
 
-                          {
-                            'beginTime': {
-                                            $gte: fromTime,
-                                            $lte: toTime
-                                         }
-                          },
+                          // {
+                          //   'beginTime': {
+                          //                   $gte: fromTime,
+                          //                   $lte: toTime
+                          //                }
+                          // },
 
                           {
                             'id': {
-                                    $not: {$in: foundOrders }
+                                    $not: {$in: idFoundOrders }
                                   }
                           }
                         ]
                 });
         } else if (fromTime !== null && toTime === null) {
-          //Начальная, конечня дата, начальное время
-          return db.collection('orders')
+          //Начальная, конечная, начальное
+          return mongoConnection.mongo.orders
           .find({ $and: [
                     {
                       'beginDate': {
@@ -292,20 +455,20 @@ function run(fromDate, toDate, fromTime, toTime) {
                                   }
                     },
 
-                    {
-                      'beginTime': {$gte: fromTime}
-                    },
+                    // {
+                    //   'beginTime': {$gte: fromTime}
+                    // },
 
                     {
                       'id': {
-                              $not: {$in: foundOrders }
+                              $not: {$in: idFoundOrders }
                             }
                     }
                   ]
           });
         } else if (fromTime === null && toTime !== null) {
           //Начальная дата, конечная дата, конечное время
-          return db.collection('orders')
+          return mongoConnection.mongo.orders
           .find({ $and: [
                     {
                       'beginDate': {
@@ -314,27 +477,38 @@ function run(fromDate, toDate, fromTime, toTime) {
                                   }
                     },
 
-                    {
-                      'beginTime': {$lte: toTime}
-                    },
+                    // {
+                    //   'beginTime': {$lte: toTime}
+                    // },
 
                     {
                       'id': {
-                              $not: {$in: foundOrders }
+                              $not: {$in: idFoundOrders }
                             }
                     }
                   ]
           });
         } else {
           //Если начальная и конечная дата
-          return db.collection('orders')
+          return mongoConnection.mongo.orders
           .find({ $and: [
                     {
                       'beginDate': {
-                                    $gte: fromDate,
+                                    $gte: fromDate
+                                  }
+                    },
+
+                    {
+                      'endDate': {
                                     $lte: toDate
                                   }
                     },
+
+                    {
+                      'id': {
+                              $not: {$in: idFoundOrders }
+                            }
+                    }
                   ]
           });
         }
@@ -342,22 +516,22 @@ function run(fromDate, toDate, fromTime, toTime) {
 
     if (fromTime !== null && toTime !== null) {
       //Начальная дата, начальное время, конечное время
-      return db.collection('orders')
+      return mongoConnection.mongo.orders
       .find({ $and: [
                 {
-                  'beginDate': {$gte: fromDate}
+                  'beginDate': { $gte: fromDate }
                 },
 
                 {
                   'beginTime': {
-                                  $gte: fromTime,
+                                  // $gte: fromTime,
                                   $lte: toTime
                                }
                 },
 
                 {
                   'id': {
-                          $not: {$in: foundOrders }
+                          $not: {$in: idFoundOrders }
                         }
                 }
               ]
@@ -365,38 +539,38 @@ function run(fromDate, toDate, fromTime, toTime) {
 
     } else if (fromTime !== null && toTime === null) {
       //Начальная дата, начальное время
-      return db.collection('orders')
+      return mongoConnection.mongo.orders
       .find({ $and: [
                 {
-                  'beginDate': {$gte: fromDate}
+                  'beginDate': { $gte: fromDate }
                 },
 
-                {
-                  'beginTime': {$gte: fromTime}
-                },
+                // {
+                //   'beginTime': {$gte: fromTime}
+                // },
 
                 {
                   'id': {
-                          $not: {$in: foundOrders }
+                          $not: {$in: idFoundOrders }
                         }
                 }
               ]
       });
     } else if (fromTime === null && toTime !== null) {
       //Начальная дата, конечное время
-      return db.collection('orders')
+      return mongoConnection.mongo.orders
       .find({ $and: [
                 {
-                  'beginDate': {$gte: fromDate}
+                  'beginDate': { $gte: fromDate }
                 },
 
                 {
-                  'beginTime': {$lte: toTime}
+                  'beginTime': { $lte: toTime }
                 },
 
                 {
                   'id': {
-                          $not: {$in: foundOrders }
+                          $not: {$in: idFoundOrders }
                         }
                 }
               ]
@@ -404,15 +578,15 @@ function run(fromDate, toDate, fromTime, toTime) {
 
     } else {
       //Только начальная дата
-      return db.collection('orders')
+      return mongoConnection.mongo.orders
       .find({ $and: [
                     {
-                      'beginDate': {$gte: fromDate}
+                      'beginDate': { $gte: fromDate }
                     },
 
                     {
                       'id': {
-                              $not: {$in: foundOrders }
+                              $not: {$in: idFoundOrders }
                             }
                     }
                   ]
@@ -421,7 +595,7 @@ function run(fromDate, toDate, fromTime, toTime) {
   } else {
     if (fromTime !== null && toTime !== null) {
       //Начальное и конечное время
-      return db.collection('orders')
+      return mongoConnection.mongo.orders
       .find({ $and: [
                     {
                       'beginTime': {
@@ -437,23 +611,22 @@ function run(fromDate, toDate, fromTime, toTime) {
 
                     {
                       'id': {
-                              $not: {$in: foundOrders }
+                              $not: {$in: idFoundOrders }
                             }
                     }
                   ]
             });
     } else if (fromTime !== null) {
       //Начальное время
-      console.log('Начальное время');
-      return db.collection('orders')
+      return mongoConnection.mongo.orders
       .find({ $and: [
                     {
-                      'beginTime': {$gte: fromTime}
+                      'beginTime': { $gte: fromTime }
                     },
 
                     {
                       'id': {
-                              $not: {$in: foundOrders }
+                              $not: {$in: idFoundOrders }
                             }
                     }
                   ]
@@ -461,15 +634,15 @@ function run(fromDate, toDate, fromTime, toTime) {
 
     } else if (toTime !== null) {
       //Конечное время
-      return db.collection('orders')
+      return mongoConnection.mongo.orders
       .find({ $and: [
                     {
-                      'endTime': {$gte: toTime}
+                      'endTime': { $gte: toTime }
                     },
 
                     {
                       'id': {
-                              $not: {$in: foundOrders }
+                              $not: {$in: idFoundOrders }
                             }
                     }
                   ]
@@ -479,12 +652,11 @@ function run(fromDate, toDate, fromTime, toTime) {
 }
 
 ipcMain.on('searchInDB', function (event, key) {
-    let db = mongoConnection.getDb();
-    foundOrders = [];
-    console.log("====SEARCH KEY====");
-    console.log(key);
+  // if (sync) {
+    sync = false;
+    //foundOrders = [];
 
-    db.collection('orders')
+    mongoConnection.mongo.orders
     .find(
         { $and: [
                   { $or: [
@@ -495,7 +667,7 @@ ipcMain.on('searchInDB', function (event, key) {
                          ]
                   },
 
-                  {'id': { $not: {$in: foundOrders } } }
+                  {'id': { $not: {$in: idFoundOrders } } }
                 ]
         })
     .sort({ 'dateCreate': -1 })
@@ -505,25 +677,35 @@ ipcMain.on('searchInDB', function (event, key) {
           return false;
         }
 
-        uploadOrders = checkSameOrder(uploadOrders);
-
         if (uploadOrders.length) {
-          console.log('=======КОЛИЧЕСТВО ЗАКАЗОВ: ' + uploadOrders.length + ' =========');
-          console.log(uploadOrders);
-          console.log('===========================');
+          // uploadOrders = checkSameOrder(uploadOrders);
+          // console.log('=======КОЛИЧЕСТВО ЗАКАЗОВ: ' + uploadOrders.length + ' =========');
+          // console.log(uploadOrders);
+          // console.log('===========================');
 
-          addOrderToOrderID(uploadOrders, event);
+          // addOrderToOrderID(uploadOrders, event);
+          event.sender.send('foundOrders', uploadOrders);
+          foundOrders = uploadOrders;
+          return true;
         } else {
-          console.log('Ничего не загрузилось');
+          event.sender.send('error_notFound', null);
+          sync = true;
         }
     });
+  // } else {
+  //   console.log('  ');
+  //   console.log('  ');
+  //   console.log('ЗАПРОС ЕЩЕ ВЫПОЛНЯЕТСЯ');
+  //   console.log('  ');
+  //   console.log('  ');
+  // }
+
 });
 
 function checkSameOrder(uploadOrders) {
   for (let i = 0; i < foundOrders.length; i++) {
     for (let j = 0; j < uploadOrders.length; j++) {
       if (foundOrders[i].id == uploadOrders[j].id) {
-        console.log('УДАЛЯЕМ КОПИЮ ЗАКАЗА');
         uploadOrders.splice(j, 1);
       }
     }
@@ -534,8 +716,10 @@ function checkSameOrder(uploadOrders) {
 function addOrderToOrderID(uploadOrders, event) {
     for (let i = 0; i < uploadOrders.length; i++) {
       foundOrders.push(uploadOrders[i]);
+      idFoundOrders.push(uploadOrders[i]);
     }
     event.sender.send('foundOrders', foundOrders);
+    sync = true;
     return true;
 }
 
@@ -557,12 +741,35 @@ ipcMain.on('setStatus', function (event, id) {
     for (let i = 0; i < orders.length; i++) {
       if (orders[i].id == id) {
         orders[i].status = 'run';
-        orders[i].beginDate = getCurrentDate();
+        orders[i].beginDate = new Date().toISOString();
         orders[i].beginTime = getCurrentTime();
         event.returnValue = true;
       }
     }
 });
+
+ipcMain.on('setOrderRun', (event, id) => {
+    orderRun = id;
+});
+
+// ipcMain.on('setHistoryOperation', function (event, classNameOperation, nameOperation, timeOperation) {
+//     for (let i = 0; i < orders.length; i++) {
+//       if (orders[i].id === orderRun) {
+//         for (let j = 0; j < orders[i].info.length; j++) {
+//           if (orders[i].info[j][1] === nameOperation) {
+//             orders[i].info[j][4] = getCurrentDate() + ' ' + getCurrentTime();
+//           }
+//         }
+//         let endDateOperation = getCurrentDate() + ' ' + getCurrentTime();
+//         let history          = [];
+//             history.push(classNameOperation)
+//             history.push(nameOperation);
+//             history.push(beginDateOperation);
+//             history.push(endDateOperation);
+//             history.push(lastTimeOperation);
+//       }
+//     }
+// });
 
 
 //Запуск операции
@@ -573,21 +780,114 @@ ipcMain.on('setStatus', function (event, id) {
 //Увеличиваем время у класс операций
 
 ipcMain.on('startOperation', function (event, operation) {
-    focusIndex = operation[4];
-    addWorkUser();
+
+    focusIndex         = operation[4];
+    beginDateOperation = fromDate(beginDateOperation);
+
     stopOperation();
+
+    if (nameOperation !== operation[1]) {
+      lastTimeOperation = 0;
+    }
+
+    nameOperation = operation[1];
+
+    addWorkUser();
     editOrder(operation);
+    addHistoryOperation(operation);
 
     BlockIntervalID = setInterval(function run() { //Создаем новый таймер для операций
+
+      lastTimeOperation++;
       operation[2]++;
-      if (orderID == orderRun) {
+
+      if (orderID === orderRun) {
         event.sender.send('setTime', operation);
       }
+
       setTimeClass(operation[0]);
       editOrder(operation);
-    }, 2000);
+      editHistoryOperation();
+      addHistoryToDB();
+      console.log(historyOperations);
+
+      for (let i = 0; i < orders.length; i++) {
+        if (orders[i].id === orderRun) {
+          updateOrder(orders[i].id, orders[i]);
+          break;
+        }
+      }
+
+    }, 1000);
 });
 
+function addHistoryOperation(operation) {
+  let history = [];
+  let hours   = new Date();
+
+  hours.setMinutes(hours.getMinutes() + 1);
+  let optionsForTime = {
+    hour: 'numeric',
+    minute: 'numeric',
+    timezone: 'UTC'
+  };
+  let endDateOperation = hours.toLocaleString('ru-RU', optionsForTime);
+
+  history.push(operation[0]);
+  history.push(operation[1]);
+  history.push(beginDateOperation);
+  history.push(getCurrentDate() + ' ' + endDateOperation);
+  history.push(lastTimeOperation);
+
+  historyOperations.push(history);
+}
+
+function editHistoryOperation() {
+  let hours   = new Date();
+
+  hours.setMinutes(hours.getMinutes() + 1);
+  let optionsForTime = {
+    hour: 'numeric',
+    minute: 'numeric',
+    timezone: 'UTC'
+  };
+
+  let endDateOperation = hours.toLocaleString('ru-RU', optionsForTime);
+
+  historyOperations[historyOperations.length - 1][3] = getCurrentDate() + getCurrentTime();
+  historyOperations[historyOperations.length - 1][4] = lastTimeOperation;
+}
+
+function addHistoryToDB() {
+  mongoConnection.mongo.ordersHistory.update({ 'id': orderRun },
+  { 'id': orderRun,
+    'history': historyOperations
+  },
+  { upsert: true },
+  (err, docsUpdated) => {
+      if (err) console.log(err);
+      // else console.log(docUpdated);
+  });
+}
+
+function setEndTimeOperation() {
+  for (let i = 0; i < orders.length; i++) {
+    if (orders[i].id === orderRun) {
+      for (let j = 0; j < orders[i].info.length; j++) {
+        if (orders[i].info[j][1] === nameOperation) {
+          orders[i].info[j][4] = getCurrentDate() + ' ' + getCurrentTime();
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function fromDate(beginDateOperation) {
+  beginDateOperation = null;
+  return getCurrentDate() + ' ' + getCurrentTime();
+}
 
 //Находим запущенный заказ, если работника в массиве нет, то добавляем, иначе возврат
 function addWorkUser() {
@@ -605,6 +905,7 @@ function addWorkUser() {
 function stopOperation() {
   if(BlockIntervalID != null) {
     clearInterval(BlockIntervalID);
+    setEndTimeOperation();
     BlockIntervalID = null;
   }
 }
@@ -625,20 +926,16 @@ function addOperation(arrOperation, operation) {
   for (let i = 0; i < arrOperation.length; i++) {
     if (arrOperation[i][1] == operation[1]) {
       arrOperation[i][2] = operation[2];
-      console.log('Обновление значения');
       return true;
     }
   }
-  console.log('Добавление новой операции');
-  arrOperation.push([operation[0], operation[1], operation[2]]);
+  arrOperation.push([operation[0], operation[1], operation[2], getCurrentDate() + ' ' + getCurrentTime(), ' ']);
 }
-
 
 //Находим запущенную операцию
 //Сравниваем переданный класс операцию и меняем значение времени этого класса
 
 function setTimeClass(className) {
-  console.log(className);
   for (let i = 0; i < orders.length; i++) {
     if (orders[i].id == orderRun) {
       switch (className) {
@@ -682,26 +979,28 @@ ipcMain.on('closeOrder', function (event, id) {
       for (let i = 0; i < orders.length; i++) {
         if (orders[i].id == orderRun) {
           orders[i].status = 'close';
-          orders[i].endDate = getCurrentDate();
+          orders[i].endDate = new Date().toISOString();
           orders[i].endTime = getCurrentTime();
 
+          updateOrder(orderRun, orders[i]);
           orderRun = null;
-
+          historyOperations = [];
           event.sender.send('showCloseOrder', orders[i]);
-
-          let db = mongoConnection.getDb();
-          db.collection('orders').update(
-              { 'id': orders[i].id },
-              orders[i]
-          , function (err, docUpdated) {
-            console.log(docUpdated);
-          });
         }
       }
     } else {
       console.log('Не тот заказ пытаетесь закрыть');
     }
 });
+
+function updateOrder(id, order) {
+  mongoConnection.mongo.orders.update(
+      { 'id': id },
+      order
+  , function (err, docUpdated) {
+    return true;
+  });
+}
 
 
 //Текущая дата
@@ -713,7 +1012,7 @@ function getCurrentDate() {
     timezone: 'UTC'
   };
 
-  return new Date().toLocaleString('sq', optionsForDate);
+  return new Date().toLocaleString('ru-RU', optionsForDate);
 }
 
 //Текущее время
@@ -721,15 +1020,8 @@ function getCurrentTime() {
   let optionsForTime = {
     hour: 'numeric',
     minute: 'numeric',
-    second: 'numeric',
     timezone: 'UTC'
   };
 
-  return new Date().toLocaleString('sq', optionsForTime);
+  return new Date().toLocaleString('ru-RU', optionsForTime);
 }
-
-// ipcMain.on('removeOrder', function (event, arg) {
-//   console.log('delete');
-//   let db = mongoConnection.getDb();
-//   db.collection('orders').remove({ "dateCreate": { $gt: "2017-12-19 00:00:00" } } );
-// });

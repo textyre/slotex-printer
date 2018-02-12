@@ -1,0 +1,68 @@
+/** Описание стилей для шапки приложения **/
+.Head
+{
+  width: 100%;
+  min-height: 10%;
+
+  display: inline-flex;
+  justify-content: space-around;
+  align-items: center;
+
+  font-weight: 600;
+  color: #363636;
+
+  pointer-events: none;
+}
+
+.Field, .user
+{
+  display: inline-block;
+  text-align: left;
+}
+
+.Field label, .user label
+{
+  font-size: 22px;
+}
+
+.Field
+{
+  margin-left: 4%;
+}
+
+.user
+{
+  margin-left: 7%;
+  margin-right: 1.5%;
+}
+
+#Order, #Client, #Decor, #Weight, #Count
+{
+  color: #666666;
+}
+
+/* Описание стилей для контрола - вернуться */
+#block_controls
+{
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding-left: 3%;
+  padding-right: 5%;
+
+  pointer-events: auto;
+  width: 50px;
+}
+
+.controls
+{
+  width: 30px;
+  height: 30px;
+}
+
+.controls:hover
+{
+  transition: all 100ms ease-in;
+  transform: scale(1.3);
+}

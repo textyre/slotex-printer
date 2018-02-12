@@ -1,143 +1,7 @@
-@font-face {
-    font-family: Ubuntu; /* Гарнитура шрифта */
-    src: url(../resources/1.ttf); /* Путь к файлу со шрифтом */
-}
-html, body
-{
-  width: 100%;
-  height: 100%;
-
-  min-width: 1280px;
-  min-height: 720px;
-}
-
-*
-{
-  margin: 0px;
-}
-
-:active, :hover, :focus {
-    outline: 0;
-    outline-offset: 0;
-}
-/** Описание стилей для шапки приложения **/
-.Head
-{
-  width: 100%;
-  min-height: 10%;
-  text-align: center;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-
-  /* Тени */
-  -webkit-box-shadow: 0px -4px 10px #363636; /* Safari & Chrome */
-  -moz-box-shadow: 0px -4px 10px #363636; /* Firefox */
-  -o-box-shadow: 0px -4px 10px #363636; /* Opera */
-  box-shadow: 0px -4px 10px #363636;
-
-  color: #363636;
-  font-family: 'Ubuntu', monospace;
-  font-weight: 600;
-  pointer-events: none;
-}
-
-.Field, .user
-{
-  display: inline-block;
-  text-align: left;
-}
-
-.Field label, .user label
-{
-  font-size: 22px;
-}
-
-.Field
-{
-  margin-left: 4%;
-}
-
-#controls
-{
-  display: inline-flex;
-  padding-left: 3%;
-  pointer-events: auto;
-  width: 50px;
-}
-
-.controls
-{
-  width: 30px;
-  height: 30px;
-  padding-right: 30%;
-}
-
-.controls:hover
-{
-  transition: all 100ms ease-in;
-  transform: scale(1.3);
-}
-
-.user
-{
-  margin-left: 7%;
-  margin-right: 1.5%;
-}
-/* Описание стилей для шапки приложения */
-
-#Order, #Client, #Decor, #Weight, #Count
-{
-  color: #666666;
-}
-
-
-/**********************************************************/
-/* Описание стилей для заголовка операции и статус операций*/
-/**********************************************************/
-.OperationsTitle, .StatusOperationsTitle
-{
-  padding-top: 1.5%;
-  padding-bottom: 1.5%;
-  height: 3%;
-  display: flex;
-  align-items: center;
-  justify-content:  space-between;
-  pointer-events: none;
-}
-.StatusOperationsTitle, .operations
-{
-  border-bottom: solid #EDEDED;
-  border-width: thin;
-}
-h3
-{
-  margin-left: 3%;
-  font-size: 35px;
-  font-family: 'Ubuntu', monospace;
-}
 #closeOrder
 {
-  width: 150px;
-  height: 40px;
   margin-right: 20px;
-  font-size: 14px;
-  font-family: 'Ubuntu';
-  color: #29B2FF;
-  background-color: white;
-  border-radius: 3px;
-  border: 1px solid #29B2FF;
-  pointer-events: auto;
 }
-
-#closeOrder:hover
-{
-  background-color: #29B2FF;
-  color: white;
-}
-/**********************************************************/
-/* Описание стилей для заголовка операции и статус операций*/
-/**********************************************************/
 
 /**********************************************************/
 /** Описание стилей для таблицы операции**/
@@ -149,69 +13,77 @@ h3
   width: 100%;
 }
 
-#warningCloseOrder
+#block_warning
 {
   position: absolute;
+
   display: none;
   justify-content: center;
   align-items: center;
+
   height: 100%;
   width: 100%;
-  border-collapse: collapse;
-  border-bottom: solid #EDEDED;
+
   border-top: solid #EDEDED;
+  border-bottom: solid #EDEDED;
+  border-collapse: collapse;
   border-width: medium;
+
   background-color: rgba(240, 240, 240, 0.9);
   z-index: 5;
 }
 
-#warning
+#el_warning
 {
   display: inline-flex;
   justify-content: center;
   align-items: center;
+
   background-color: #29B2FF;
+
   border-radius: 40px;
+
   width: 500px;
   height: 60px;
-  font-family: 'Ubuntu', monospace;
+
   font-size: 18px;
   color: white;
 }
 
-table, td, .titleTable
-{
-  font-family: 'Ubuntu', monospace;
-}
 
 table
 {
   width: 100%;
   min-height: 100%;
+
   border-collapse: collapse;
-  border-bottom: solid #EDEDED;
-  border-top: solid #EDEDED;
   border-width: thin;
 }
+
 .titleTable
 {
   padding-left: 3.5%;
   padding-right: 3.5%;
   padding-top: 1%;
   padding-bottom: 1%;
+
+  font-size: 22px;
   text-align: center;
+
   border-bottom: solid #EDEDED;
   border-right: solid #EDEDED;
   border-width: thin;
-  font-size: 22px;
+
   pointer-events: none;
 }
 
 td
 {
   padding: 1%;
+
   border-right: solid #EDEDED;
   border-width: thin;
+
   font-size: 22px;
   font-weight: 600;
   color: #333333;
@@ -222,12 +94,15 @@ td
 {
   display: inline-block;
   float: right;
+
   margin-top: 5px;
+
   border: 6px solid transparent;
   border-top: 6px solid #DEDEDE;
 }
+
 /**********************************************************/
-/** Описание стилей для таблицы операции**/
+/** Описание операций для таблицы операции**/
 /**********************************************************/
 /*#F07070 #8CD98E #FFCE1F*/
 
@@ -253,54 +128,34 @@ td
     left: 0;
     right: 0;
     top: 0;
-    display: none;
-    position: absolute;
-    background-color: #FAFAFA;
-    box-shadow: 4px 4px 16px 0px rgba(0,0,0,0.3);
-    z-index: 1;
 }
 
-/* Links inside the dropdown */
 .dropdown-content a {
-    color: black;
-    background-color: #FAFAFA;
     padding: 7%;
-    text-decoration: none;
-    display: block;
-    z-index: 1;
 }
 
-/* Change color of dropdown links on hover */
 .dropdown-content a:focus, .dropdown-content a:hover
 {
   background-color: #F07070;
-  color: white;
 }
 
-.show
-{
-  display:block;
-}
-
-/**********************************************************/
-/* Выпадающий список */
-/**********************************************************/
-
+/* Блок операций */
 .operations
 {
-  padding-top: 1.5%;
   width: 100%;
   height: auto;
+  padding-top: 1.5%;
   background-color: #fcfcfc; /* fafdff - печать, fcf0f0 - простой, f4fff4 - наладка, fffcf2 - остановка*/
 }
 
 h1
 {
   display: flex;
+  justify-content: center;
+
   padding-top: 1%;
   padding-bottom: 2.5%;
-  justify-content: center;
-  font-family: 'Ubuntu', monospace;
+
   color: #ededed;
 }
 
@@ -310,10 +165,11 @@ div[name=operationsBlock]
   text-align: center;
   width: 450px;
   background-color: #FFFFFF;
-  box-shadow: 4px 4px 16px 0px rgba(0,0,0,0.10);
+
   margin-left: 2%;
   margin-right: 1%;
   margin-bottom: 2%;
+
   border-radius: 4px;
 }
 
@@ -325,150 +181,124 @@ div[name=operationsBlock]
 
 .ClassType, .Time
 {
-  vertical-align: middle;
   display: inline-block;
+  vertical-align: middle;
+  text-align: right;
+  font-weight: 600;
+
+  color: #666666;
 
   z-index: 1;
-  text-align: right;
-  font-family: 'Ubuntu', monospace;
-  color: grey;
-  font-weight: 600;
+
 }
 .Time
 {
   margin-left: 40px;
   padding: 25px 0px;
 }
+
 .ClassType #class
 {
   font-size: 23px;
 }
+
 .ClassType #type
 {
   font-size: 25px;
 }
+
 .Time #min
 {
   font-size: 36px;
 }
+
 .Time #labelMin
 {
   font-size: 26px;
 }
+
 .ClassType
 {
   width: 290px;
 }
 
+
 /**********************************************************/
 /* Описание стилей для действий курсором */
 /**********************************************************/
+@media screen and (min-width:1600px) and (max-width:3200px)
+{
+  div[name=operationsBlock]
+  {
+    width: 420px;
+  }
 
-.adjustment:focus
-{
-  background-color: #8CD98E;
-  color: white;
-}
-.print:focus
-{
-  background-color: #29B2FF;
-  color: white;
-}
+  .Time
+  {
+    margin-left: 2%;
+  }
 
-.downtime:focus, .dropbtn:focus
-{
-  background-color: #F07070;
-  color: white;
-}
-
-.stop:focus
-{
-  background-color: #FFD747;
-  color: white;
+  .ClassType
+  {
+    margin-right: 5%;
+  }
 }
 
-.adjustment:hover
-{
-  background-color: #86d288;
-  color: white;
-}
-
-.print:hover
-{
-  background-color: #24a7f1;
-  color: white;
-}
-
-.downtime:hover, .dropbtn:hover
-{
-  background-color: #e86a6a;
-  color: white;
-}
-
-.stop:hover
-{
-  background-color: #ffe133;
-  color: white;
-}
-/**********************************************************/
-/* Описание стилей для действий курсором */
-/**********************************************************/
 @media screen and (max-width:1440px), screen and (max-height:1000px) {
   .Field label, .time label, .user label
   {
     font-size: 14px;
   }
+
   h3
   {
     font-size: 22px;
   }
+
   .titleTable
   {
     font-size: 18px;
   }
+
   td
   {
     font-size: 15px;
   }
 
-  #rectangle
-  {
-    width: 8px;
-    height: 32px;
-  }
   .ClassType #class
   {
     font-size: 14px;
   }
+
   .ClassType #type
   {
     font-size: 16px;
   }
+
   .Time
   {
     pointer-events: none;
     padding: 15px 0;
   }
+
   .Time #min
   {
     font-size: 22px;
   }
+
   .Time #labelMin
   {
     font-size: 18px;
   }
+
   div[name=operationsBlock]
   {
     width: 310px;
   }
+
   .ClassType
   {
     pointer-events: none;
     width: 200px;
   }
-  .play
-  {
-    border-width: 18px 0px 18px 25px;
-  }
-
 }

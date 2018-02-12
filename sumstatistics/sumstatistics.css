@@ -1,0 +1,154 @@
+.sumstatistics
+{
+  position: relative;
+  min-height: 87%;
+  max-width: 100%;
+}
+
+.operation_block
+{
+  max-width: 100%;
+}
+
+.operation_block_title_operation
+{
+  width: 100%;
+  margin-top: 2%;
+}
+
+.operation_block_title_operation label
+{
+  font-size: 22px;
+  font-weight: 600;
+  color: #404040;
+
+  margin-left: 3%;
+}
+
+.operation_block_data_operation
+{
+  display: inline-flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+
+  height: auto;
+  width: 97%;
+
+  margin-top: 2%;
+  padding-left: 3%;
+}
+
+.data
+{
+  height: 180px;
+  width: 300px;
+
+  margin-right: 3%;
+  margin-bottom: 3%;
+
+  padding-bottom: 1%;
+}
+
+.id-minutes, .fromDate, .toDate
+{
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.id-minutes
+{
+  height: 40%;
+}
+
+.fromDate, .toDate
+{
+  height: 30%;
+}
+
+.id-minutes label, .fromDate label, .toDate label
+{
+  margin-left: 30px;
+  margin-right: 30px;
+}
+
+.title_id-minutes, .titleData
+{
+  display: inline-block;
+  font-size: 12px;
+  color: #909090;
+}
+
+.title_id-minutes
+{
+  max-width: 50px;
+}
+
+.titleData
+{
+  width: 150px;
+}
+
+.order
+{
+  display: inline-block;
+  word-wrap: break-word;
+  max-width: 150px;
+  font-size: 18px;
+}
+
+.time
+{
+  font-size: 22px;
+}
+
+.date, .datetime
+{
+  font-size: 16px;
+  color: #404040;
+}
+
+.data:hover
+{
+  transition: all 100ms ease-in;
+  transform: scale(1.02);
+}
+
+.adjustment:hover
+{
+  background-color: #86d288;
+}
+
+.print:hover
+{
+  background-color: #24a7f1;
+}
+
+.downtime:hover, .dropbtn:hover
+{
+  background-color: #e86a6a;
+}
+
+.stop:hover
+{
+  background-color: #ffe133;
+}
+
+.data:hover label
+{
+  color:white;
+}
+
+@media screen and (max-width:1440px), screen and (max-height:1000px) {
+  .Field label, .time label, .user label
+  {
+    font-size: 14px;
+  }
+
+  h3
+  {
+    font-size: 22px;
+  }
+}

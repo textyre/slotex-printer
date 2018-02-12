@@ -2,7 +2,11 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="../generalStyle.css" rel="stylesheet">
+  <link href="../headStyle.css" rel="stylesheet">
+  <link href="../dropdown.css" rel="stylesheet">
   <link href="main.css" rel="stylesheet">
+
   <link href="../resources/animate.css" rel="stylesheet">
   <meta charset="UTF-8">
   <title>SIS</title>
@@ -20,7 +24,7 @@
 </head>
 <body class="animated fadeInDown">
   <div id='head' class="Head">
-      <div id="controls">
+      <div id="block_controls">
         <img class="controls" id="arrow" src="../resources/arrow1.png"></img>
       </div>
       <div class="Field"><label>Номер заказа</label><br><label id="Order"></label></div>
@@ -30,13 +34,13 @@
       <div class="Field"><label>Количество</label><br><label id="Count"></label></div>
       <div class="user"><label id="User"></label></div>
   </div>
-  <div class="OperationsTitle">
+  <div class="Title firstTitle">
       <h3>Операции<h3>
-      <button id='closeOrder'>Закрыть заказ</button>
+      <button class="btn_access" id="closeOrder">Закрыть заказ</button>
   </div>
   <div id="tableBlock">
-    <div id="warningCloseOrder">
-      <div id="warning">Операции недоступны - заказ закрыт</div>
+    <div id="block_warning">
+      <div id="el_warning">Операции недоступны - заказ закрыт</div>
     </div>
     <table class="TableOperations" id="panel">
       <thead>
@@ -159,7 +163,7 @@
       </tr>
     </table>
   </div>
-  <div class="StatusOperationsTitle">
+  <div class="Title">
     <h3>Статус операций</h3>
   </div>
 

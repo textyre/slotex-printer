@@ -2,15 +2,18 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="../generalStyle.css" rel="stylesheet">
   <link href="orders.css" rel="stylesheet">
   <link href="../resources/animate.css" rel="stylesheet">
 
   <meta charset="UTF-8">
   <title>SIS</title>
-  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
 
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <link href="../bower_components/air-datepicker/dist/css/datepicker.css" rel="stylesheet" type="text/css">
+  <script src="../bower_components/air-datepicker/dist/js/datepicker.js"></script>
   <script src="../orders/orders.js"></script>
   <script src="../orders/sidebar.js"></script>
   <script src="../orders/searchBar.js"></script>
@@ -20,94 +23,104 @@
   <script>if (window.module) module = window.module;</script>
 </head>
 <body class="animated fadeInUpBig">
+    <button id="downloadsOrders" class="btn_absolute">Загрузить еще заказы</button>
     <div class="sidebar">
-      <div id="loclogo">
-        <div id="locationLogo">
+      <div id="block_logo_nameuser">
+        <div id="block_logo">
           <img id="logo" src="../resources/logo1.png"></img>
         </div>
-        <div id="locationUser">
+        <div id="block_user">
           <label id="nameUser">Павел Бригадиров Алексеевич</label>
           <label id="changeUser">Сменить пользователя</label>
         </div>
       </div>
       <div id='filterbar'>
-        <label id="categories">Выполнение заказов</label>
+        <label class="title_bar">Выполнение заказов</label>
 
-        <label class="ttFilter">Дата</label>
-        <label class="titleFilter">Начальная дата</label>
+        <label class="main_title_categogries">Дата</label>
+        <label class="sub_title">Начальная дата</label>
         <div class="filter">
-          <input id="fromDate" placeholder="От" type="text" onfocus="this.type='date'"></input>
+          <input id="fromDate" placeholder="От" type="text" class="datepicker-here"></input>
           <label id="errorFromDate_incorrect" class="errorLabel">Неверно введена дата</label>
         </div>
-        <label class="titleFilter">Конечная дата</label>
+        <label class="sub_title">Конечная дата</label>
         <div class="filter">
-          <input id="toDate" placeholder="До" type="text" onfocus="this.type='date'"></input>
+          <input id="toDate" placeholder="До" type="text" class="datepicker-here"></input>
           <label id="errorToDate_incorrect" class="errorLabel">Неверно введена дата</label>
           <label id="errorToDate_min" class="errorLabel">Конечная дата меньше начальной</label>
         </div>
 
-        <label class="ttFilter">Время</label>
-        <label class="titleFilter">Начало заказа</label>
+        <label class="main_title_categogries">Время</label>
+        <label class="sub_title">Начало заказа</label>
         <div class="filter">
-          <input id="fromTime" placeholder="" type="text" onfocus="this.type='time'"></input>
+          <input id="fromTime" placeholder="" type="text" onfocus="this.type = 'time'"></input>
         </div>
-        <label class="titleFilter">Конец заказа</label>
-        <div class="filter" id="lastFilter">
-          <input id="toTime" placeholder="" type="text" onfocus="this.type='time'"></input>
+        <label class="sub_title">Конец заказа</label>
+        <div class="filter" >
+          <input id="toTime" placeholder="" type="text" onfocus="this.type = 'time'"></input>
         </div>
-        <button id='btnAddOrder'>Добавить заказ</button>
+        <div class="blockButton">
+          <button class="btn_access" id="btnReset">Сбросить</button>
+        </div>
+        <div class="line-blue"></div>
+
+        <button id="btnAddOrder" class="btn_absolute">Добавить заказ</button>
       </div>
       <div id="createOrderBar">
-        <label id="titleCreateOrder">Добавление заказа</label>
-        <label class="titleFilter">Номер заказа</label>
+        <label class="title_bar">Добавление заказа</label>
+        <label class="sub_title">Номер заказа</label>
         <div class="filter">
           <input id="inputOrder" type="text"></input>
         </div>
-        <label class="titleFilter">Клиент</label>
+        <label class="sub_title">Клиент</label>
         <div class="filter">
-          <input id="inputClient" type="text" onkeyup="searchInClue()"></input>
+          <input id="inputClient" type="text"></input>
         </div>
-        <label class="titleFilter">Декор</label>
+        <label class="sub_title">Декор</label>
         <div class="filter">
-          <input id="inputDecor" type="text" onkeyup="searchInClue()"></input>
+          <input id="inputDecor" type="text"></input>
         </div>
-        <label class="titleFilter">Длина, м</label>
+        <label class="sub_title">Длина, м</label>
         <div class="filter">
           <input id="inputWeight" type="text"></input>
         </div>
-        <label class="titleFilter">Количество, кг</label>
+        <label class="sub_title">Количество, кг</label>
         <div class="filter" id="lastFilter">
           <input id="inputCount" type="text"></input>
         </div>
-        <div id="blockButton">
-          <button id='btnCancel' class="btn">Отменить</button>
-          <button id='btnCreateOrder' class="btn">Создать заказ</button>
+        <div class="line-blue"></div>
+        <div class="blockButton">
+          <button id='btnCancel' class="btn_delay">Отменить</button>
+          <button id='btnCreateOrder' class="btn_access">Создать заказ</button>
         </div>
       </div>
       <div id="usersBar">
-        <label id="titleCreateOrder">Выберите пользователя</label>
+        <div class="title_bar_users">
+          <label class="title_bar">Выберите пользователя</label>
+          <img class="listICO" src="../resources/list.png" />
+        </div>
         <div id="users">
 
         </div>
         <div class="line-blue"></div>
-        <div id="blockButton">
-          <button id='btnCancelChooseUsers' class="btn">Отменить</button>
-          <button id='btnChooseUser' class="btn">Выбрать</button>
+        <div class="blockButton">
+          <button id='btnCancelChooseUsers' class="btn_delay">Отменить</button>
+          <button id='btnChooseUser' class="btn_access">Выбрать</button>
         </div>
       </div>
     </div>
-    <div id="list">
+    <div id="list" class="animated fadeInLeft">
     </div>
 
     <div class="searchbar">
-      <input id="inputSearchBar" placeholder="Ввведите номер заказа, клиента, декор или печатника"></input>
+      <input id="inputSearchBar" type="text" placeholder="Ввведите номер заказа, клиента, декор или печатника"></input>
     </div>
     <div id="button_showStatistics" class="animated-my fadeInDown">
       <div class="Field"><label>Период</label><br><label id="time"></label></div>
-      <button id="btnShowStatistcs">Показать статистику</button>
+      <button id="btnShowStatistics">Показать статистику</button>
     </div>
     <div id="main">
-
     </div>
+
 </body>
 </html>

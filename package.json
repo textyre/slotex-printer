@@ -1,16 +1,20 @@
 {
   "name": "slotexIS",
   "version": "0.1.0",
+  "productName": "Printer",
   "main": "main.js",
   "scripts": {
     "start": "electron main.js",
-    "build": "electron-packager . slotexIS --all --version=0.33.3 --app-version=0.1.0 --out=dist --ignore=dist --prune"
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/mac/icon.icns --prune=true --out=release-builds",
+    "package-win": "electron-packager ./  --platform=win32 --arch=ia32,x64",
+    "package-linux": "electron-packager . slotexIS --overwrite --asar=true --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds"
   },
   "dependencies": {
     "mongodb": "^3.0.1"
   },
   "devDependencies": {
     "electron": "1.7.10",
+    "electron-packager": "^10.1.2",
     "webpack": "^3.10.0"
   }
 }

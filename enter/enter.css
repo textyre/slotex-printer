@@ -4,8 +4,76 @@
 }
 body
 {
-  background-color: #2EA8EF
+  background-color: #2EA8EF;
 }
+
+.block_auth
+{
+  width: 100%;
+  height: 100px;
+
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+  top:0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  margin: auto;
+}
+
+.input_auth
+{
+  width: 550px;
+  height: 60px;
+  background-color: white;
+
+  border-radius: 4px;
+
+  font-size: 18px;
+  font-family: Ubuntu;
+  font-weight: 600;
+  box-shadow: 4px 4px 40px rgba(0,0,0,0.35);
+
+  padding-right: 15px;
+
+  color: #555555;
+}
+
+::-webkit-input-placeholder
+{
+  color: #d0d0d0;
+  font-weight: bolder;
+}
+
+.block_inputAuth_listUser
+{
+  position: relative;
+}
+
+.dropdown-content {
+    max-height: 290px;
+    width: 100%;
+
+    margin-top: 1%;
+    overflow-y: scroll;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+    font-size: 16px;
+    padding: 20px;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content a:focus, .dropdown-content a:hover
+{
+  background-color: #dadada;
+}
+
 .entry
 {
     max-width: 400px;
@@ -76,8 +144,8 @@ body
 
 button
 {
-  width: 400px;
-  height: 55px;
+  width: 200px;
+  height: 65px;
   font-size: 18px;
   font-family: 'Ubuntu';
   color: #4D4D4D;
@@ -87,9 +155,11 @@ button
   -webkit-appearance: none;
   -moz-appearance: none;
 
-  border-radius: 8px;
+  border-radius: 4px;
   border: 0px solid;
   outline: 0;
+
+  margin-left: 15px;
 }
 button:hover
 {

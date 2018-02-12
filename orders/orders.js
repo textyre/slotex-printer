@@ -10,6 +10,9 @@ var foundOrders = [];
 
 let loadContent = false;
 
+let show_buttton_showStatistics = false;
+let visibleFoundOrders = false;
+
 ipcRenderer.send("windowLoad", "ordersWindow");
 ipcRenderer.send('getUserName', null);
 
@@ -28,29 +31,50 @@ ipcRenderer.on('foundOrders', function (event, arrayOrders) {
     outOrderOnPage(arrayOrders, 0, arrayOrders.length, 'searchMode');
     foundOrders = [];
     foundOrders = arrayOrders;
+    visibleFoundOrders = true;
+    if (document.activeElement.id !== 'inputSearchBar') {
+      show_buttton_showStatistics = showBlock_buttton_showStatistics();
+    }
 });
 
-window.scroll = function () {
+window.addEventListener('load', function () {
+    let buttonDownloadOrders = document.getElementById('downloadsOrders');
+    buttonDownloadOrders.addEventListener('click', function () {
+        setTimeout(() => {
+          window.scrollBy(0, window.innerHeight);
+        }, 200);
 
+        ipcRenderer.send("loadOrder", null);
+    });
+
+    var main = document.getElementById('main');
+
+    let btnShowStatistics = document.getElementById('btnShowStatistics');
+
+    btnShowStatistics.addEventListener('click', function() {
+        let time = document.getElementById('time').textContent;
+        ipcRenderer.send('openWindow', ['sumstatistics', time]);
+    });
+});
+
+function hideButtonDowloadOrders() {
+  let buttonDownloadOrders = document.getElementById('downloadsOrders');
+  buttonDownloadOrders.style.display = 'none';
 }
 
-window.onload = function () {
-  $(window).scroll(function() {
-      if($(window).scrollTop() + $(window).height() >= $(document).height() - 70 && !loadContent) {
-        loadContent = true;
-        console.log(loadContent);
-        ipcRenderer.send("loadOrder", loadContent);
-      }
-  });
-  var main = document.getElementById('main');
+function showButtonDowloadOrders() {
+  let buttonDownloadOrders = document.getElementById('downloadsOrders');
+  buttonDownloadOrders.style.display = 'block';
 }
 
 function openPanel() {
-  if (event.target.className.indexOf('statisticsICO') !== -1) {
-    return true;
-  }
+  if (event.target.className.indexOf('statisticsICO') !== -1 ||
+      event.target.className.indexOf('deleteOrderICO')   !== -1) return true;
+
   let arrayOrders = orders();
   let id = $(this).attr('id');
+
+  searchOrdersInFoundOrders(id, 'panelWindow');
   for (let i = 0; i < arrayOrders.length; i++) {
     if (arrayOrders[i].id == id) {
       ipcRenderer.send("openWindow", ['panelWindow', id]);
@@ -61,11 +85,57 @@ function openPanel() {
 
 function openStatistics() {
   let arrayOrders = orders();
-  let id = event.target.parentNode.parentNode.id;
+  let id = event.target.parentNode.parentNode.parentNode.id;
+  console.log(id);
+  searchOrdersInFoundOrders(id, 'statisticsWindow');
   for (let i = 0; i < arrayOrders.length; i++) {
     if (arrayOrders[i].id == id) {
       ipcRenderer.send("openWindow", ['statisticsWindow', id]);
       return true;
+    }
+  }
+}
+
+let deleteOrderID;
+
+function deleteOrder() {
+  let id = event.target.parentNode.parentNode.parentNode.id;
+  deleteOrderID = id;
+  let block_deleteOrder           = document.createElement('div');
+      block_deleteOrder.id        = 'block_deleteOrder';
+      block_deleteOrder.innerHTML = getTemplateDeleteOrder(id);
+  document.body.insertBefore(block_deleteOrder, document.body.childNodes[0]);
+}
+
+function getTemplateDeleteOrder(id) {
+  return `<div id="block_deleteOrder"> \
+    <div id="block_questionDeleteOrder" class="animated fadeInUpBig"> \
+      <div id="block_question"><label id="el_question">Вы точно хотите удалить заказ ${id}?</label></div> \
+      <div id="block_controls"> \
+        <button class="btn_delay" id="btnCancel" onclick="cancelDeleteOrder()">Отменить</button> \
+        <button class="btn_access" id="btnDelete" onclick="accessDeleteOrder()">Удалить</button> \
+      </div> \
+    </div> \
+  </div>`
+}
+
+function accessDeleteOrder() {
+  document.getElementById(deleteOrderID).remove();
+  document.getElementById('block_deleteOrder').remove();
+  ipcRenderer.send('deleteOrder', deleteOrderID);
+}
+
+function cancelDeleteOrder() {
+  document.getElementById('block_deleteOrder').remove();
+}
+
+function searchOrdersInFoundOrders(id, nameWindow) {
+  if (foundOrders !== null) {
+    for (let i = 0; i < foundOrders.length; i++) {
+      if (foundOrders[i].id == id) {
+        ipcRenderer.send("openWindow", [nameWindow, id]);
+        return true;
+      }
     }
   }
 }
@@ -82,15 +152,17 @@ function outOrderOnPage(arr, positionAt, positionTo, mode) {
 }
 
 function setEventListener(section) {
-  var orders = section.getElementsByClassName('order');
-  var icons  = section.getElementsByClassName('statisticsICO');
+  var orders           = section.getElementsByClassName('order');
+  var iconsStatistics  = section.getElementsByClassName('statisticsICO');
+  let iconsDeleteOrder = section.getElementsByClassName('deleteOrderICO');
 
   for (let i = 0; i < orders.length; i++) {
     orders[i].addEventListener('click', openPanel);
   }
 
-  for (let i = 0; i < icons.length; i++) {
-    icons[i].addEventListener('click', openStatistics);
+  for (let i = 0; i < iconsStatistics.length; i++) {
+    iconsStatistics[i].addEventListener('click', openStatistics);
+    iconsDeleteOrder[i].addEventListener('click', deleteOrder);
   }
 }
 
@@ -98,25 +170,28 @@ function getTemplate(order, status, mode) {
   let headOrder;
   switch (mode) {
     case 'searchMode':
-      headOrder = '<div class="order" id="buff_' + order.id + '">'
+      headOrder = '<div class="order buff" id="' + order.id + '">'
     break;
 
     default:
-      headOrder = '<div class="order animated slideInUp" id="' + order.id + '">'
+      headOrder = '<div class="order" id="' + order.id + '">'
   }
 
   return headOrder + ' \
     <div id="titleOrder"> \
       <label>' + order.id + '</label> \
-      <img class="statisticsICO animated zoomIn" src="../resources/diagram.png"> \
+      <div class="controlIMG"> \
+        <img class="statisticsICO  animated zoomIn" src="../resources/diagram.png"> \
+        <img class="deleteOrderICO animated zoomIn" src="../resources/deleteOrder.png"> \
+      </div> \
     </div> \
     <div id="bodyClient"> \
-      <label id="client" class="data">' + order.client + '</label> \
+      <label id="client" class="dataOrder">' + order.client + '</label> \
     </div> \
     <div id="bodyMore"> \
-      <div id="decor"><label class="data">'  + order.decor  + '</label></div> \
-      <div id="weight"><label class="data">' + order.weight + '</label></div> \
-      <div id="count"><label class="data">'  + order.count  + '</label></div> \
+      <div id="decor"><label class="dataOrder">'  + order.decor  + '</label></div> \
+      <div id="weight"><label class="dataOrder">' + order.weight + '</label></div> \
+      <div id="count"><label class="dataOrder">'  + order.count  + '</label></div> \
     </div>'
     + status +
   '</div>';
@@ -141,38 +216,82 @@ function getClassTemplate(status) {
   }
 }
 
-function hideDownloadOrders() {
-  let orders = document.getElementsByClassName('order');
+let hideShowFlag_DownloadsOrders = false;
 
-  console.log('загруженные скрыть, найденные - показать');
-  for (let i = 0; i < orders.length; i++) {
-    if (orders[i].id.indexOf('buff_') === -1 && orders[i].style.display !== 'none') {
-      orders[i].style.display = 'none';
+//Скрыть заказы, загруженные при запуске программы
+function hideDownloadOrders() {
+  if (!hideShowFlag_DownloadsOrders) {
+    let orders = document.getElementsByClassName('order');
+
+    for (let i = 0; i < orders.length; i++) {
+      if (orders[i].classList[1] !== 'buff' && orders[i].style.display !== 'none') {
+        orders[i].style.display = 'none';
+      }
     }
+    hideShowFlag_DownloadsOrders = true;
   }
 }
-//
-function showDownloadOrders() {
-  let orders = document.getElementsByClassName('order');
 
-  for (let i = 0; i < orders.length; i++) {
-    if (orders[i].style.display == 'none') {
-      orders[i].style.display = 'inline-block';
+//Показать заказ, загруженные при запуске программы
+function showDownloadOrders() {
+  if (hideShowFlag_DownloadsOrders) {
+    let orders = document.getElementsByClassName('order');
+
+    for (let i = 0; i < orders.length; i++) {
+      if (orders[i].style.display == 'none') {
+        orders[i].style.display = 'inline-block';
+      }
     }
+    orders = null;
+
+    hideShowFlag_DownloadsOrders = false;
   }
-  orders = null;
 }
 
 function removeFoundOrders() {
-  let orders = document.getElementsByClassName('order');
-
-  for (let i = 0; i < orders.length; i++) {
-    if (orders[i].id.indexOf('buff_') !== -1) {
-      console.log(orders[i]);
-      orders[i].remove();
-      i--;
+  let orders = document.getElementsByClassName('buff');
+  if (orders !== null) {
+    console.log(orders);
+    for (let i = orders.length-1; i >= 0; i--) {
+        orders[i].remove();
     }
+    orders = null;
+    visibleFoundOrders = false;
   }
+}
 
-  orders = null;
+function showBlock_buttton_showStatistics() {
+  document.getElementById('button_showStatistics').style.display = 'inline-flex';
+  document.getElementById('main').style.paddingTop = '0px';
+  return true;
+}
+
+function hideBlock_buttton_showStatistics() {
+  document.getElementById('button_showStatistics').style.display = 'none';
+  document.getElementById('main').style.paddingTop = '95px';
+  return true;
+}
+
+ipcRenderer.on('error_notFound', function (event, param) {
+    removeFoundOrders();
+    console.log("error_notFound");
+    let main = document.getElementById('main');
+    let error_notFound = document.getElementById('error_notFound');
+    if (error_notFound === null) {
+      let error = document.createElement('label');
+          error.innerHTML = 'Ничего не нашлось! :(';
+          error.className = 'error_notFound';
+          error.id        = 'error_notFound';
+      main.appendChild(error);
+    }
+    // if (document.getElementById('inputSearchBar').value !== '') {
+    //
+    // }
+});
+
+function removeErrorNotFoundOnDisplay() {
+  let error_notFound = document.getElementById('error_notFound');
+  if (error_notFound !== null) {
+    error_notFound.remove();
+  }
 }

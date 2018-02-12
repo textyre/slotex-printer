@@ -1,0 +1,290 @@
+@font-face {
+    font-family: Ubuntu; /* Гарнитура шрифта */
+    src: url(resources/1.ttf); /* Путь к файлу со шрифтом */
+}
+
+html, body
+{
+  width: 100%;
+  height: 100%;
+
+  min-width: 1280px;
+  min-height: 720px;
+  background-color: white;
+}
+
+*
+{
+  margin: 0px;
+}
+
+:active, :hover, :focus {
+    outline: 0;
+    outline-offset: 0;
+}
+
+::-webkit-scrollbar { display: none; }
+input[type="time"]::-webkit-clear-button {
+    display: none;
+}
+
+.filter
+{
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+
+  width: 100%;
+  height: 40px;
+  color: white;
+}
+
+.filter input
+{
+  width: 90%;
+  height: 30px;
+
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  padding-right: 5px;
+
+  margin-bottom: 10%;
+  margin-left: 15px;
+  margin-right: 15px;
+
+  border-collapse: collapse;
+  border: solid #29B2FF;
+  border-width: thin;
+  border-radius: 3px;
+
+  /* -webkit-appearance: none;
+  outline: 0; */
+
+  background-color: white;
+
+  font-size: 16px;
+  color: #808080;
+}
+
+.filter ::-webkit-input-placeholder
+{
+  color: #808080;
+  font-weight: bolder;
+}
+
+.filter input:hover, .filter input:focus
+{
+  background-color: rgba(41, 178, 255, 0.02);
+}
+
+/* Описание теней для элементов на страницах */
+.Head,
+div[name=operationsBlock],
+.blockDateTime,
+.block,
+.useful,
+.unhelpful,
+.necessary,
+.data,
+#block_questionDeleteOrder,
+#downloadsOrders,
+.sidebar,
+.title_bar_users,
+#list.visible,
+.titleList,
+.searchbar #inputSearchBar,
+#button_showStatistics
+{
+  box-shadow: -1px -1px 2em rgba(0, 0, 0, 0.1);
+}
+
+/* Описание шрифта для элементов */
+.Head,
+h1,
+h3,
+label,
+table,
+td,
+.btn_access,
+.btn_delay,
+#el_warning,
+.titleTable,
+.ClassType,
+.Time,
+#el_question,
+#downloadsOrders,
+#nameUser,
+#changeUser,
+#categories,
+.main_title_categogries,
+.sub_title,
+.filter input,
+.titleList label,
+.listitem,
+.searchbar #inputSearchBar,
+.Field,
+#time
+{
+  font-family: 'Ubuntu';
+  font-weight: 600;
+}
+
+/* Описание стилей для заголовков разделов */
+.Title
+{
+  padding-top: 1.5%;
+  padding-bottom: 1.5%;
+
+  height: 3%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  pointer-events: none;
+}
+
+.Title, .operations
+{
+  border-top: solid #EDEDED;
+  border-bottom: solid #EDEDED;
+  border-width: thin;
+}
+
+.firstTitle, .operations, .operation_block
+{
+  border-top: none;
+  border-bottom: solid #EDEDED;
+  border-width: thin;
+}
+
+.errorLabel
+{
+  font-family: Ubuntu;
+  font-size: 14px;
+  font-weight: 600;
+
+  display: none;
+
+  color: #F07070;
+}
+
+h3
+{
+  margin-left: 3%;
+  font-size: 35px;
+}
+
+/*Описание стилей для кнопок*/
+
+.blockButton
+{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4%;
+  margin-bottom: 4%;
+  width: 100%;
+}
+
+.btn_absolute
+{
+  font-family: Ubuntu;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+
+  border: none;
+  background-color: #29B2FF;
+  border-radius: 30px;
+
+  z-index: 4;
+}
+
+.btn_absolute:hover
+{
+  transition: all 200ms ease-in;
+  transform: scale(1.019);
+}
+
+.btn_access, .btn_delay
+{
+  width: 150px;
+  height: 40px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  border-radius: 3px;
+  pointer-events: auto;
+
+}
+
+.btn_access
+{
+  color: #29B2FF;
+  background-color: white;
+
+  border: 1px solid #29B2FF;
+}
+
+.btn_access:hover
+{
+  background-color: #29B2FF;
+  color: white;
+}
+
+.btn_delay
+{
+  color: #e0e0e0;
+  background-color: white;
+
+  border: 1px solid #e0e0e0;
+}
+
+.btn_delay:hover
+{
+  background-color: #e0e0e0;
+  color: white;
+}
+
+/*  Описание стилей для курсора */
+.adjustment:hover
+{
+  background-color: #86d288;
+  color: white;
+}
+
+.print:hover
+{
+  background-color: #24a7f1;
+  color: white;
+}
+
+.downtime:hover, .dropbtn:hover
+{
+  background-color: #e86a6a;
+  color: white;
+}
+
+.stop:hover
+{
+  background-color: #ffe133;
+  color: white;
+}
+
+/* Иконка удаления из списка */
+.listitem img
+{
+  height: 20px;
+  weight: 20px;
+  margin-right: 3%;
+}
+
+.listitem img:hover
+{
+  transition: all 200ms ease-in;
+  transform: scale(1.3);
+}

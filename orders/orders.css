@@ -1,99 +1,163 @@
-@font-face {
-    font-family: Ubuntu; /* Гарнитура шрифта */
-    src: url(../resources/1.ttf); /* Путь к файлу со шрифтом */
-}
-
-html, body
+/* Блок при удалении заказа */
+#block_deleteOrder
 {
-  min-width: 100%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  position: fixed;
+  width: 100%;
   height: 100%;
-  background-color: white;
-  min-width: 1280px;
+
+  background-color: rgba(60, 60, 60, 0.70);
+
+  z-index: 5;
 }
 
-*
+/* Модальное окно с вопросом */
+#block_questionDeleteOrder
 {
-  margin: 0px;
+  height: 15%;
+  width: 40%;
+  background-color: white;
+  border-radius: 3px;
 }
 
-:active, :hover, :focus {
-    outline: 0;
-    outline-offset: 0;
+/* Блок с вопросом */
+#block_question
+{
+  height: 50%;
+  width: 100%;
 }
 
-::-webkit-scrollbar { display: none; }
+/* Вопрос */
+#el_question
+{
+  display: inline-block;
 
+  font-size: 22px;
+  color: #404040;
+
+  margin-left: 5%;
+  margin-top: 5%;
+}
+
+/* Блок с кнопками */
+#block_controls
+{
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  height: 50%;
+  width: 100%;
+}
+
+/* Удалить */
+#btnDelete
+{
+  margin-left: 5%;
+  margin-right: 5%;
+}
+
+/* Кнопка "Загрузить еще заказы" */
+#downloadsOrders
+{
+  position: fixed;
+  bottom: 2%;
+  right: 1%;
+
+  width: 220px;
+  height: 55px;
+}
+
+/* Меню слева, входит: фильтрбар, бар создания заказа, бар смена юзера */
 .sidebar
 {
   position: fixed;
+
   height: 97%;
   width: 20%;
-  min-width: 20%;
+  /* min-width: 20%; */
+
   margin-top: 1%;
   margin-left: 1%;
+
   background-color: white;
-  box-shadow: -1px -1px 2em rgba(0, 0, 0, 0.1);
+
   overflow: scroll;
   overflow-x: hidden;
   overflow-y: hidden;
-  z-index: 3;
-  -webkit-transform: translate3d(0, 0, 0);
 
+  z-index: 4;
 }
 
-#loclogo
+/* Блок с логотипом и юзером */
+#block_logo_nameuser
 {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
+
   height: 80px;
   width: 100%;
+
   background: linear-gradient(to bottom left, #29B2FF, #0095e9);
 }
 
-.sidebar #logo
+/* Логотип */
+#logo
 {
   width: 30px;
   height: 40px;
 }
 
-#locationLogo
+/* Блок с логотипом */
+#block_logo
 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   height: 100%;
   width: 30%;
+
   background-color: #0299ee;
 }
 
-#locationUser
+/* Блок с юзером */
+#block_user
 {
   width: 70%;
 }
 
+/* Имя юзера */
 #nameUser
 {
   display: inline-block;
-  font-family: Ubuntu;
-  font-size: 14px;
-  font-weight: bolder;
-  letter-spacing: 0.02em;
-  margin-left: 15%;
   width: 70%;
+
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  margin-left: 15%;
   color: white;
 }
 
+/* Сменить юзера */
 #changeUser
 {
   display: inline-block;
-  font-family: Ubuntu;
+  width: 100%;
+
   font-size: 12px;
   font-weight: bolder;
   letter-spacing: 0.02em;
+
   margin-top: 4%;
   margin-left: 15%;
-  width: 100%;
+
   color: white;
 }
 
@@ -104,7 +168,7 @@ html, body
   color: rgba(255, 255, 255, 0.55);
 }
 
-
+/* Фильтрбар */
 #filterbar
 {
   position: absolute;
@@ -118,166 +182,145 @@ html, body
   opacity: 0;
 }
 
-#categories
+/* Заголовок бара */
+.title_bar
 {
   display: inline-block;
-  font-family: Ubuntu;
-  font-size: 20px;
-  font-weight: bolder;
   width: 100%;
-  margin-left: 5%;
-  margin-top: 6%;
+
+  font-size: 20px;
+  font-weight: 600;
   color: #404040;
+
+  margin-left: 5%;
+  margin-top: 5%;
 }
 
-.ttFilter
+/* Заголовки групп фильтраций */
+.main_title_categogries
 {
   display: inline-block;
-  font-family: Ubuntu;
+  width: 100%;
+
   font-size: 17px;
   color: #404040;
-  padding-top:10%;
+
   margin-left: 15px;
-  width: 100%;
+  padding-top: 5%;
 }
 
-.titleFilter
+/* Название фильтра */
+.sub_title
 {
   display: inline-block;
-  font-family: Ubuntu;
   font-size: 15px;
+  color: #808080;
+
   margin-left: 15px;
-  margin-top: 8%;
+  margin-top: 5%;
   margin-bottom: 8%;
-  color: #808080;
 }
 
-.filter
+/* Разделяющая линия */
+.line-blue
 {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  height: 40px;
-  color: white;
-
-}
-
-.filter input
-{
-  width: 90%;
-  height: 30px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-left: 10px;
-  padding-right: 5px;
-  margin-bottom: 10%;
-  margin-left: 15px;
-  margin-right: 15px;
-
   border-collapse: collapse;
-  border: solid #29B2FF;
+  border-bottom: solid rgba(41, 178, 255, 0.2);
   border-width: thin;
-  border-radius: 3px;
 
-  -webkit-appearance: none;
-  outline: 0;
-
-  background-color: white;
-  font-family: Ubuntu;
-  font-size: 16px;
-  color: #808080;
+  margin-top: 2%;
+  margin-bottom: 2%;
 }
 
-.filter ::-webkit-input-placeholder
+/* Кнопки сбросить, создание заказа, отмены, смены юзера, отмена смены юзера */
+#btnReset, #btnCreateOrder, #btnCancel, #btnDelete, #btnChooseUser, #btnCancelChooseUsers
 {
-  color: #808080;
-  font-weight: bolder;
+  margin-right: 15px;
+  width: 110px;
+  height: 35px;
+  pointer-events: inherit;
 }
 
-.filter input:hover, .filter input:focus
+#btnCancel, #btnCancelChooseUsers
 {
-  background-color: rgba(41, 178, 255, 0.02);
+  margin-left: 15px;
 }
 
+/* Сначала конечная дата заблокирована */
 #toDate
 {
   pointer-events: none;
   opacity: 0.5;
 }
 
+
 .errorLabel
 {
-  font-family: Ubuntu;
-  font-size: 14px;
-  margin-left: 18px;
-  margin-top: 20px;
-  display: none;
+  margin-left: 15px;
+  margin-top: 23px;
+
   position: absolute;
-  color: red;
 }
 
-#createOrderBar
+/* Бар создание заказа и юезра*/
+#createOrderBar, #usersBar
 {
   position: absolute;
   pointer-events: none;
   opacity: 0;
 }
 
-#createOrderBar.visible
+/* Анимация появления баров: создание закза и юзерабар*/
+#createOrderBar.visible, #usersBar.visible
 {
   transition: all 0.4s ease-in-out;
   pointer-events: auto;
   opacity: 1;
-}
 
-#titleCreateOrder
-{
-  display: inline-block;
-  width: 100%;
-  font-family: Ubuntu;
-  font-size: 20px;
-  font-weight: bolder;
-  color: #404040;
-  margin-left: 5%;
-  padding-top: 5%;
-  padding-bottom: 5%;
-}
-
-#usersBar
-{
-  position: absolute;
-  pointer-events: none;
-  opacity: 0;
   width: 100%;
 }
 
 #usersBar.visible
 {
-  transition: all 0.4s ease-in-out;
-  pointer-events: auto;
-  opacity: 1;
+  height: 70%;
 }
 
+
+/* Блок с юзерами */
 #users
 {
   overflow-y: scroll;
   overflow-x: none;
-  height: 445px;
+  height: 100%;
 }
 
+/* Заголовок бара */
+.title_bar_users
+{
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.title_bar_users label
+{
+  font-size: 18px;
+  padding-bottom: 5%;
+}
+
+/* Юзеры */
 .user
 {
   width: 95%;
 
   font-family: Ubuntu;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bolder;
   color: #808080;
 
-  padding-top: 20px;
-  padding-bottom: 20px;
+  padding-top: 9%;
+  padding-bottom: 9%;
   padding-left: 5%;
 }
 
@@ -293,109 +336,41 @@ html, body
   color: white;
 }
 
-#blockButton
-{
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-top: 5%;
-  width: 100%;
-}
-
-.btn
-{
-  margin-left: 15px;
-  margin-right: 15px;
-  margin-top: 2%;
-  font-family: Ubuntu;
-  font-size: 14px;
-  color: #29B2FF;
-  border-radius: 3px;
-  background: white;
-  width: 110px;
-  height: 35px;
-}
-
-#btnCreateOrder, #btnChooseUser
-{
-  border: 1px solid #29B2FF;
-  color: #29B2FF;
-  background: white;
-}
-
-#btnCreateOrder:hover, #btnChooseUser:hover
-{
-  color: white;
-  background: #29B2FF;
-}
-
-#lastFilter, .line-blue
-{
-  border-collapse: collapse;
-  border-bottom: solid rgba(41, 178, 255, 0.2);
-  border-width: thin;
-}
-
-#lastFilter
-{
-  padding-bottom: 20px;
-}
-
+/* Кнопка добавления заказа */
 #btnAddOrder
 {
+  width: 90%;
+  height: 40px;
+
   margin-left: 15px;
   margin-right: 15px;
-  margin-top: 10%;
-  width: 90%;
-  font-family: Ubuntu;
-  font-size: 14px;
-  color: white;
-  background: #29B2FF;
-  border: none;
+  margin-top: 5%;
+
   border-radius: 3px;
-  height: 40px;
 }
 
-#btnAddOrder:hover, #btnAddOrder:focus
-{
-  color: white;
-  background: #0095e9;
-  transition: all 200ms ease-in;
-  transform: scale(1.019);
-}
-
-#btnCancel, #btnCancelChooseUsers
-{
-  margin-right: -5px;
-  border: 1px solid #e0e0e0;
-  color: #e0e0e0;
-  background: white;
-}
-
-#btnCancel:hover, #btnCancelChooseUsers:hover
-{
-  color: white;
-  background: #e0e0e0;
-}
-
+/* Лист */
 #list
 {
   display: none;
 }
 
+/* Лист видимый */
 #list.visible
 {
   display: block;
   position: fixed;
   height: 97%;
-  width: 20%;
+  width: 300px;
+
   margin-top: 1%;
   margin-bottom: 1%;
-  margin-left: 21.5%;
-  background-color: rgba(80, 80, 80, 0.9);
-  box-shadow: 0px 0px 1em rgba(0, 0, 0, 0.2);
+  margin-left: 22%;
+
+  background-color: white;
+
   overflow: scroll;
-  z-index: 7;
+  z-index: 3;
 }
 
 .listitem:hover
@@ -404,46 +379,96 @@ html, body
   color: white;
 }
 
-.listitem
+/* Контейнер для заголовка листа */
+.container_titleList
 {
-  font-family: Ubuntu;
-  font-size: 13px;
-  color: white;
-  padding-left: 5%;
-  padding-right: 5%;
-  padding-top: 6%;
-  padding-bottom: 6%;
-  width: 90%;
+  width: 100%;
+  height: 80px;
 }
 
+/* Заголовок листа */
+.titleList
+{
+  position: fixed;
+
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: center;
+
+  width: 300px;
+  height: 80px;
+
+  background-color: white;
+
+  z-index: 3;
+}
+
+.titleList label
+{
+  font-size: 18px;
+  color: #404040;
+  margin-left: 5%;
+}
+
+/* Иконка списка */
+.listICO
+{
+  height: 15px;
+  width: 15px;
+  margin-right: 5%;
+}
+
+/* Элементы листа */
+.listitem
+{
+
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: center;
+
+  width: 95%;
+
+  padding-left: 5%;
+  padding-top: 7%;
+  padding-bottom: 7%;
+
+  font-size: 14px;
+  color: #808080;
+
+  border-bottom: solid #EDEDED;
+  border-width: thin;
+}
+
+/* Блок с поисковиком */
 .searchbar
 {
   position: fixed;
   width: 100%;
   height: 90px;
-  z-index: 2;
+
   background: linear-gradient(to bottom, white 70%, rgba(255, 255, 255, 0));
   -webkit-transform: translate3d(0, 0, 0);
 
+  z-index: 2;
 }
 
+/* Поиск */
 .searchbar #inputSearchBar
 {
   width: 75%;
   height: 80px;
+
   margin-top: 1%;
   margin-bottom: 15px;
   margin-left: 22%;
-  font-size: 22px;
-  font-weight: 600;
-  font-family: Ubuntu;
 
-  -webkit-appearance: none;
-  outline: 0;
-  border: 0;
-  color: #404040;
   padding-left: 2%;
-  box-shadow: 0 0 1em rgba(0,0,0,0.1);
+
+  font-size: 22px;
+  color: #404040;
+
+  border: 0;
+
   z-index: 3;
 }
 
@@ -459,44 +484,46 @@ html, body
   font-weight: bolder;
 }
 
+/* Блок с кнопкой "Показать статистику"  */
 #button_showStatistics
 {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+
   width: 77%;
   height: 70px;
 
   margin-left: 22%;
   margin-top: 110px;
 
-  display: none;
-  justify-content: space-between;
-  align-items: center;
-
-  background-color: #ffffff;
-  box-shadow: 0 0 1em rgba(0,0,0,0.1);
+  background-color: white;
 
   z-index: 2;
 }
 
+/* Блок с интервалом времени */
 .Field
 {
-  font-family: Ubuntu;
-  font-size: 14px;
   margin-left: 2%;
 }
 
+/* Цвет в блоке выбранного интервала */
 .Field label
 {
-  color: #666666;
+  font-size: 14px;
+  color: #606060;
 }
 
+/* Данные о выбранной выборке */
 #time
 {
-  color: #404040;
   font-size: 18px;
-  font-weight: 600;
+  color: #404040;
 }
 
-#btnShowStatistcs
+/* Кнопка показать статистику */
+#btnShowStatistics
 {
   border: 1px solid #29B2FF;
   border-radius: 3px;
@@ -512,7 +539,7 @@ html, body
   font-size: 14px;
 }
 
-#btnShowStatistcs:hover
+#btnShowStatistics:hover
 {
   color: white;
   background: #29B2FF;
@@ -523,17 +550,29 @@ html, body
   font-family: Ubuntu;
   font-size: 36px;
   color: #dadada;
-  margin-top: -20%;
+
+  position: absolute;
+
+  width: 400px;
+  height: 50px;
+
+  top:0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  margin: auto;
+  z-index: 6;
 }
 
 #main
 {
   position: relative;
   margin-left: 22%;
-  margin-bottom: 18px;
+  margin-bottom: 1%;
   padding-top: 95px;
   width: 77.8%;
-  min-height: 100%;
+  min-height: 95%;
   z-index: 1;
 }
 
@@ -595,11 +634,22 @@ html, body
   justify-content: space-between;
 }
 
+#titleOrder .controlIMG
+{
+  display: inline-flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 20px;
+  margin-top: 5%;
+  margin-right: 8%;
+}
+
 #titleOrder label
 {
   display: inline-block;
   font-family: Ubuntu;
-  font-size: 22px;
+  font-size: 20px;
+  word-wrap: break-word;
   width: 110px;
   color: #77777;
   margin-left: 10%;
@@ -612,8 +662,14 @@ html, body
   display: none;
   width: 20px;
   height: 25px;
-  margin-right: 5%;
-  margin-top: 4%;
+}
+
+.deleteOrderICO
+{
+  display: none;
+  width: 23px;
+  height: 23px;
+  margin-left: 40%;
 }
 
 #client
@@ -634,7 +690,9 @@ html, body
 {
   display: inline-block;
   width: 100%;
-  height: 40%;
+  height: 30%;
+  margin-top: 10%;
+
   text-align: center;
   vertical-align: bottom;
 }
@@ -679,6 +737,11 @@ html, body
   display: block;
 }
 
+.order:hover .deleteOrderICO
+{
+  display: block;
+}
+
 .order:hover #titleOrder label
 {
   transition: all 200ms ease-in;
@@ -712,17 +775,47 @@ html, body
   }
 }
 
-@media screen and (min-width:1600px) and (max-width:1919px)
+@media screen and (min-width:1600px) and (max-width:3200px)
 {
   .order
   {
-    width: 19%;
+    width: 15.66%;
     height: 320px;
   }
 
   #bodyClient label, #bodyMore label
   {
     font-size: 16px;
+  }
+
+  .sidebar
+  {
+    width: 15%;
+  }
+
+  #main, .searchbar #inputSearchBar, #list.visible, #button_showStatistics
+  {
+    margin-left: 17%;
+  }
+
+  #main
+  {
+    width: 83%;
+  }
+
+  #button_showStatistics
+  {
+    width: 82.1%;
+  }
+
+  .searchbar #inputSearchBar
+  {
+    width: 80.1%;
+  }
+
+  .listitem
+  {
+    font-size: 18px;
   }
 
 }
@@ -732,7 +825,12 @@ html, body
   .order
   {
     width: 24%;
-    height: 320px;
+    height: 300px;
+  }
+
+  #titleOrder label
+  {
+    font-size: 18px;
   }
 
   #bodyClient label, #bodyMore label
@@ -761,6 +859,11 @@ html, body
   {
     width: 19%;
     height: 240px;
+  }
+
+  #titleOrder label
+  {
+    font-size: 16px;
   }
 
   #bodyClient label, #bodyMore label
