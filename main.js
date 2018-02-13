@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const fs                              = require('fs');
 var mongoConnection                   = require('./mongoConnect');
+var ControllerLocalStore              = require('./ControllerLocalStore');
 var dateModule                        = require('./date');
 
 let win; //Окно
@@ -33,6 +34,7 @@ var historyOperations  = [];
 var sampleDate = '';
 
 var outPanel = false;
+let controllerLocalStore = new ControllerLocalStore(app);
 
 
 //При запуске приложения получаем юзеров или ошибку
@@ -64,23 +66,22 @@ ipcMain.on('openWindow', function (event, arg) {
 
     switch (arg[0]) {
       case 'enterWindow':
-        mongoConnection.connect(function (err) {
-            if (err) console.log(err);
-            mongoConnection.mongo.users.find().toArray(function (err, result) {
-                if (err) console.log(err);
-                event.sender.send('getUsers', result[0].users);
-                users = result[0].users;
-            });
-        });
+        if (users.length === 0) {
+          firstConnectionToDb(event);
+        } else {
+          event.sender.send('getUsers', users);
+        }
       break;
 
       case 'ordersWindow':
-        if (userName == null && arg[1] != null && arg[1] != undefined) userName = arg[1];
+        if (userName == null &&
+            arg[1]   != null &&
+            arg[1]   != undefined) userName = arg[1];
+
         win.loadURL(`file://${__dirname}/orders/orders.html`);
         event.sender.send('result', 'open');
-        if (arg[1] === 'panelWindow') {
-          moveBetweenDisplay = true;
-        }
+
+        if (arg[1] === 'panelWindow') moveBetweenDisplay = true;
       break;
 
       case 'panelWindow':
@@ -104,6 +105,25 @@ ipcMain.on('openWindow', function (event, arg) {
       default:
     }
 });
+
+function firstConnectionToDb(event) {
+  mongoConnection.connect(function (err) {
+      if (err) {
+        console.log(err);
+        controllerLocalStore.getUsersFromLocalStore((localUsers) => {
+            users = localUsers;
+            event.sender.send('getUsers', users);
+        });
+      } else {
+        mongoConnection.mongo.users.find().toArray((err, usersObject) => {
+            if (err) console.log(err);
+            users = usersObject[0].users;
+            controllerLocalStore.updateUsersInLocalStore(users);
+            event.sender.send('getUsers', users);
+        });
+      }
+  });
+}
 
 
 //Обработка загрузки окон
@@ -317,6 +337,7 @@ function deleteHistoryOrderInDb(id) {
 
 function getOrders(event) {
   let cursor = mongoConnection.mongo.orders.find().skip(positionTo).limit(15).sort({ 'dateCreate': -1 });
+  console.log(cursor);
   cursor.forEach(function (doc) {
     orders.push(doc);
     if (doc.status === 'run') {
@@ -324,7 +345,9 @@ function getOrders(event) {
       getOperationsHistory(undefined, orderRun);
     }
     positionTo++;
+    console.log(doc);
   }, function (err) {
+      if (err) console.log(err);
       if (positionTo == positionAt) {
         event.sender.send('getOrders', positionAt, positionTo, true);
       } else {
