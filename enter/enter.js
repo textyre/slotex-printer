@@ -7,6 +7,14 @@ var userName = null;
 // }, 1000);
 ipcRenderer.send('openWindow', ['enterWindow']);
 
+ipcRenderer.on('getUsers', function (event, users) {
+    console.log(users);
+    console.log('fff');
+    for (let i = 0; i < users.length; i++) {
+      list.innerHTML += '<a>' + users[i] + '</a>';
+    }
+});
+
 window.addEventListener('click', function () {
     if (event.target.tagName === 'INPUT') {
       return false;
@@ -44,15 +52,7 @@ window.onload = function() {
       }
   });
 
-  ipcRenderer.on('getUsers', function (event, users) {
-      console.log(users);
-      for (let i = 0; i < users.length; i++) {
-        list.innerHTML += '<a>' + users[i] + '</a>';
-        // list.innerHTML += '<div class="user" tabindex="' + (tabindex++) + '">' + objectUsers[0].users[i] + '</div>'
-      }
-      //
-      // document.getElementById('listFIO').innerHTML = options;
-  });
+
 
   const btnclick = document.getElementById('enterBttn');
   btnclick.addEventListener('click', function () {
