@@ -10,7 +10,8 @@
     "package-linux": "electron-packager . slotexIS --overwrite --asar=true --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds"
   },
   "dependencies": {
-    "mongodb": "^3.0.1"
+    "mongodb": "^3.0.1",
+    "nedb": "^1.8.0"
   },
   "devDependencies": {
     "electron": "1.7.10",
