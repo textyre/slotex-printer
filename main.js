@@ -36,6 +36,8 @@ var sampleDate = '';
 var outPanel = false;
 let controllerLocalStore = new ControllerLocalStore(app);
 
+var statusNetwork = false;
+
 
 //При запуске приложения получаем юзеров или ошибку
 app.on('ready', () => {
@@ -107,14 +109,14 @@ ipcMain.on('openWindow', function (event, arg) {
 });
 
 function firstConnectionToDb(event) {
-  mongoConnection.connect(function (err) {
-      if (err) {
-        console.log(err);
+  mongoConnection.connect((status) => {
+      if (!status) {
         controllerLocalStore.getUsersFromLocalStore((localUsers) => {
             users = localUsers;
             event.sender.send('getUsers', users);
         });
       } else {
+        statusNetwork = true;
         mongoConnection.mongo.users.find().toArray((err, usersObject) => {
             if (err) console.log(err);
             users = usersObject[0].users;
@@ -124,7 +126,6 @@ function firstConnectionToDb(event) {
       }
   });
 }
-
 
 //Обработка загрузки окон
 //Окно заказов - отдать заказы, клиентов и декоры, если есть, иначе загрузить
@@ -336,24 +337,38 @@ function deleteHistoryOrderInDb(id) {
 //Устанавливаем positionAt = positionTo
 
 function getOrders(event) {
-  let cursor = mongoConnection.mongo.orders.find().skip(positionTo).limit(15).sort({ 'dateCreate': -1 });
-  console.log(cursor);
-  cursor.forEach(function (doc) {
-    orders.push(doc);
-    if (doc.status === 'run') {
-      orderRun = doc.id;
-      getOperationsHistory(undefined, orderRun);
-    }
-    positionTo++;
-    console.log(doc);
-  }, function (err) {
-      if (err) console.log(err);
-      if (positionTo == positionAt) {
-        event.sender.send('getOrders', positionAt, positionTo, true);
-      } else {
-        event.sender.send('getOrders', positionAt, positionTo, false);
-      }
-      positionAt = positionTo;
+    checkStatusNetwork((status) => {
+        if (status) {
+          let cursor = mongoConnection.mongo.orders.find().skip(positionTo).limit(15).sort({ 'dateCreate': -1 });
+          cursor.forEach(function (doc) {
+            orders.push(doc);
+            if (doc.status === 'run') {
+              orderRun = doc.id;
+              getOperationsHistory(undefined, orderRun);
+            }
+            positionTo++;
+          }, function (err) {
+              if (err) console.log(err);
+              if (positionTo == positionAt) {
+                event.sender.send('getOrders', positionAt, positionTo, true);
+              } else {
+                event.sender.send('getOrders', positionAt, positionTo, false);
+              }
+              positionAt = positionTo;
+          });
+        } else {
+          console.log('Забей');
+        }
+    });
+}
+
+function checkStatusNetwork(callback) {
+  mongoConnection.connect((status) => {
+     if (status) {
+       return callback(true);
+     } else {
+       return callback(false);
+     }
   });
 }
 
@@ -365,10 +380,8 @@ function getOperationsHistory(event, id) {
 
   cursor.forEach(
     resultHistory => {
-      console.log('event=', event);
       if (event === undefined) {
         historyOperations = resultHistory.history;
-        console.log('historyOperations =', historyOperations);
       } else {
         event.sender.send('getOperationsHistory', resultHistory.history);
       }
@@ -382,17 +395,22 @@ function getOperationsHistory(event, id) {
 
 //Подключаем к БД и загружаем клиентов с декорами, заносим в массив
 function getData(event) {
-  let cursor = mongoConnection.mongo.ordersData.find();
-  cursor.forEach(function (doc) {
-    ordersData.push(doc);
-  }, function (err) {
-      if (err) {
-        console.log(err);
+  checkStatusNetwork((status) => {
+      if (status) {
+        let cursor = mongoConnection.mongo.ordersData.find();
+        cursor.forEach(function (doc) {
+          ordersData.push(doc);
+        }, function (err) {
+            if (err) {
+              console.log(err);
+            } else {
+              event.sender.send('getClients', ordersData[0]);
+              event.sender.send('getDecors', ordersData[1]);
+              return true;
+            }
+        });
       } else {
-        console.log(ordersData);
-        event.sender.send('getClients', ordersData[0]);
-        event.sender.send('getDecors', ordersData[1]);
-        return true;
+        console.log('Забей');
       }
   });
 }

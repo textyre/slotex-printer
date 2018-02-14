@@ -1,20 +1,34 @@
 const MongoClient = require('mongodb').MongoClient,
            assert = require('assert');
-var _database;
+var _database  = null;
 var connection = null;
-var mongo = {};
-const user = 'slotexapp';
-const pwd  = 'slotexapp';
+var mongo      = {};
+const user     = 'slotexapp';
+const pwd      = 'slotexapp';
+const connectionString = `mongodb://${user}:${pwd}@192.168.0.6:27017/slotex`;
 module.exports = {
     connect: function (callback) {
-      MongoClient.connect( `mongodb://${user}:${pwd}@192.168.0.6:27017/slotex`,
+      MongoClient.connect(connectionString,
         {
+          reconnectTries: Number.MAX_VALUE,
+          reconnectInterval: 1000,
           autoReconnect: true
         },
         (err, database) => {
-            connection = database;
-            setMongoCollection();
-            return callback (err);
+
+            try {
+              assert.equal(null, err);
+            } catch (error) {
+              console.log('Нет подключения');
+              return callback(false);
+            }
+
+            if (_database === null) {
+              connection = database;
+              setMongoCollection();
+            }
+
+            return callback (true);
         });
     },
 
