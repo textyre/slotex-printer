@@ -404,13 +404,17 @@ function getData(event) {
             if (err) {
               console.log(err);
             } else {
+              controllerLocalStore.updateClientsInLocalStore(ordersData[0].clients);
               event.sender.send('getClients', ordersData[0]);
               event.sender.send('getDecors', ordersData[1]);
               return true;
             }
         });
       } else {
-        console.log('Забей');
+        controllerLocalStore.getClientsFromLocalStore((localClients) => {
+            ordersData.push(localClients[0]);
+            event.sender.send('getClients', localClients[0]);
+        });
       }
   });
 }
