@@ -151,9 +151,9 @@ function createOrder() {
 
           let objectOrder =
           {
-            "id":          order,
-            "client":      client,
-            "decor":       decor,
+            "id":          order.replace(/[\n\t\r]/g,""),
+            "client":      client.trim(),
+            "decor":       decor.trim(),
             "weight":      Number(weight),
             "count":       Number(count),
             "dateCreate":  new Date().toISOString(),
@@ -161,7 +161,7 @@ function createOrder() {
             "endDate":     "",
             "beginTime":   "",
             "endTime":     "",
-            "userCreater": _userName,
+            "userCreater": _userName.trim(),
             "people":      [],
             "info":[],
             "usefulTime": 0,

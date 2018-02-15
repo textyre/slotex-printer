@@ -1,9 +1,7 @@
 const ipcRenderer = require('electron').ipcRenderer;
 const remote = require('electron').remote;
 
-var orders = function getOrders() {
-  return remote.getGlobal('orders');
-}
+let _orders = [];
 
 var _userName;
 var foundOrders = [];
@@ -14,11 +12,15 @@ let show_buttton_showStatistics = false;
 let visibleFoundOrders = false;
 
 ipcRenderer.send("windowLoad", "ordersWindow");
+ipcRenderer.send('startOrdersPage', true);
+ipcRenderer.send('moreDownloadOrderds', true);
 ipcRenderer.send('getUserName', null);
 
-ipcRenderer.on('getOrders', function (event, positionAt, positionTo, flag) {
+ipcRenderer.on('getOrders', function (event, orders, positionAt, positionTo, flag) {
     loadContent = flag;
-    outOrderOnPage(remote.getGlobal('orders'), positionAt, positionTo);
+    _orders     = orders;
+
+    outOrderOnPage(orders, positionAt, positionTo);
 });
 
 ipcRenderer.on('setUserName', function (event, userName) {
@@ -37,14 +39,25 @@ ipcRenderer.on('foundOrders', function (event, arrayOrders) {
     }
 });
 
+const updateOnlineStatus = () => {
+  ipcRenderer.send('online-status-changed', navigator.onLine ? true : false)
+}
+
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline',  updateOnlineStatus);
+
+updateOnlineStatus();
+
 window.addEventListener('load', function () {
     let buttonDownloadOrders = document.getElementById('downloadsOrders');
     buttonDownloadOrders.addEventListener('click', function () {
+      if (!loadContent) {
         setTimeout(() => {
           window.scrollBy(0, window.innerHeight);
-        }, 200);
+        }, 400);
 
         ipcRenderer.send("loadOrder", null);
+      }
     });
 
     var main = document.getElementById('main');
@@ -71,12 +84,11 @@ function openPanel() {
   if (event.target.className.indexOf('statisticsICO') !== -1 ||
       event.target.className.indexOf('deleteOrderICO')   !== -1) return true;
 
-  let arrayOrders = orders();
   let id = $(this).attr('id');
 
   searchOrdersInFoundOrders(id, 'panelWindow');
-  for (let i = 0; i < arrayOrders.length; i++) {
-    if (arrayOrders[i].id == id) {
+  for (let i = 0; i < _orders.length; i++) {
+    if (_orders[i].id == id) {
       ipcRenderer.send("openWindow", ['panelWindow', id]);
       return true;
     }
@@ -84,12 +96,11 @@ function openPanel() {
 }
 
 function openStatistics() {
-  let arrayOrders = orders();
   let id = event.target.parentNode.parentNode.parentNode.id;
   console.log(id);
   searchOrdersInFoundOrders(id, 'statisticsWindow');
-  for (let i = 0; i < arrayOrders.length; i++) {
-    if (arrayOrders[i].id == id) {
+  for (let i = 0; i < _orders.length; i++) {
+    if (_orders[i].id == id) {
       ipcRenderer.send("openWindow", ['statisticsWindow', id]);
       return true;
     }
@@ -144,8 +155,10 @@ function outOrderOnPage(arr, positionAt, positionTo, mode) {
   let orderStatus;
 
   for (let i = positionAt; i < positionTo; i++) {
-    orderStatus = getClassTemplate(arr[i].status);
-    document.getElementById('main').innerHTML += getTemplate(arr[i], orderStatus, mode);
+    if (document.getElementById(arr[i].id) === null) {
+      orderStatus = getClassTemplate(arr[i].status);
+      document.getElementById('main').innerHTML += getTemplate(arr[i], orderStatus, mode);
+    }
   }
 
   setEventListener(main);

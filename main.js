@@ -6,7 +6,8 @@ var dateModule                        = require('./date');
 
 let win; //Окно
 
-global.orders     = []; //Хранятся заказы из БД
+var orders            = []; //Хранятся заказы из БД
+var localOrders       = [];
 global.ordersData = []; //Хранятся клиенты и декоры
 global.moveBetweenDisplay = false;
 
@@ -23,7 +24,6 @@ var positionTo    = 0; //Позиция, по которую выводим вн
 
 var BlockIntervalID = null; //Для интервалов
 let focusIndex      = null; //Для возврата фокуса
-let sync = true;
 
 var beginDateOperation = null; //Начальное время запуск операции
 var lastTimeOperation  = 0;
@@ -33,11 +33,15 @@ var historyOperations  = [];
 
 var sampleDate = '';
 
-var outPanel = false;
 let controllerLocalStore = new ControllerLocalStore(app);
 
-var statusNetwork = false;
+//startOrdersPage: регулирует запуск страницы, при запуске true, после загрузки заказов false
 
+//moreDownloadOrderds: регулирует загрузку заказов, при старте страницы true,
+//после включения сети и загрузки заказов false
+var startOrdersPage     = false;
+var moreDownloadOrderds = false;
+var addLocalOrders      = true;
 
 //При запуске приложения получаем юзеров или ошибку
 app.on('ready', () => {
@@ -116,7 +120,6 @@ function firstConnectionToDb(event) {
             event.sender.send('getUsers', users);
         });
       } else {
-        statusNetwork = true;
         mongoConnection.mongo.users.find().toArray((err, usersObject) => {
             if (err) console.log(err);
             users = usersObject[0].users;
@@ -135,11 +138,6 @@ ipcMain.on('windowLoad', function (event, arg) {
   switch (arg) {
     case 'ordersWindow':
       foundOrders.length = [];
-      if (orders.length == 0) {
-        getOrders(event);
-      } else {
-        event.sender.send('getOrders', 0, orders.length);
-      }
 
       if (ordersData.length == 0) {
         getData(event);
@@ -166,6 +164,14 @@ ipcMain.on('windowLoad', function (event, arg) {
           return true;
         }
       }
+
+      for (let i = 0; i < localOrders.length; i++) {
+        if (localOrders[i].id === orderID) {
+          event.sender.send('getOrder', localOrders[i], userName);
+          event.sender.send('getOperations', localOrders[i], focusIndex);
+          return true;
+        }
+      }
     break;
 
     case 'statisticsWindow':
@@ -184,6 +190,14 @@ ipcMain.on('windowLoad', function (event, arg) {
           return true;
         }
       }
+
+      for (let i = 0; i < localOrders.length; i++) {
+        if (localOrders[i].id === orderID) {
+          getOperationsHistory(event, orderID);
+          event.sender.send('getOrder', localOrders[i], userName);
+          return true;
+        }
+      }
     break;
 
     case 'sumstatistics':
@@ -195,6 +209,81 @@ ipcMain.on('windowLoad', function (event, arg) {
   }
 });
 
+ipcMain.on('startOrdersPage', (event, status) => {
+    startOrdersPage = true;
+});
+
+ipcMain.on('moreDownloadOrderds', (event, status) => {
+    moreDownloadOrderds = true;
+});
+
+ipcMain.on('online-status-changed', (event, status) => {
+    console.log('online-status-changed:::orders', orders);
+    if (status) {
+      if (addLocalOrders || orders.length === 0) {
+        console.log('Был добавлен локально заказ и мы его заливаем в монгу');
+        mergeLocalAndRemoteOrdersCollection();
+      }
+
+      if (orders.length === 0 && startOrdersPage) {
+        console.log('Сеть есть и загружаем заказы из монги');
+        getOrders(event);
+      } else if (orders.length > 0 && startOrdersPage) {
+        console.log('Сеть есть: Заказы есть в массиве и страница была перезагружена');
+        event.sender.send('getOrders', orders, 0, orders.length);
+      } else if (localOrders.length > 0 && orders.length === 0) {
+        console.log('Есть сеть, объединяем локальные и удаленные заказы');
+        concatLocalAndRemoteOrders(event);
+      } else if (localOrders.length === 0 && orders.length === 0) {
+        console.log('Сеть есть, но заказов нигде нет, поэтому загружаем');
+        getOrders(event);
+      }
+      startOrdersPage = false;
+
+    } else {
+      if (orders.length > 0 && startOrdersPage) {
+        console.log('Сети нет: Заказы есть в orders и страница была перезагружена');
+        event.sender.send('getOrders', orders, 0, orders.length);
+      } else if (localOrders.length === 0 && startOrdersPage) {
+        getLocalOrders(event);
+        console.log('Загружаем заказы из локала');
+      } else if (localOrders.length > 0 && startOrdersPage) {
+        console.log('Сети нет: Заказы есть в localOrders и страница была перезагружена');
+        event.sender.send('getOrders', localOrders, 0, localOrders.length);
+      } else {
+        console.log('Нет сети, заказы загружать не надо');
+      }
+      startOrdersPage = false;
+    }
+});
+
+function concatLocalAndRemoteOrders(event) {
+  console.log('++++++');
+  console.log(orders);
+  console.log('++++++');
+  orders = orders.concat(localOrders);
+  console.log('=====');
+  console.log(orders);
+  console.log('=====');
+
+  getOrders(event);
+  moreDownloadOrderds = false;
+}
+
+function mergeLocalAndRemoteOrdersCollection() {
+  controllerLocalStore.getAllOrdersFromLocalStore((_localOrders) => {
+     addLocalOrders = false;
+     if (_localOrders.length > 0) {
+       insertLocalOrdersToRemoteDb(_localOrders);
+       controllerLocalStore.removeAllOrdersFromLocalStore((result) => {
+         console.log(result);
+       });
+     } else {
+       return true;
+     }
+  });
+}
+
 //*******************ORDERS WINDOW*******************//
 //*****************************************************//
 
@@ -202,16 +291,53 @@ ipcMain.on('windowLoad', function (event, arg) {
 //Очищаем orders, positionTo, positionAt и загружаем заново заказы (обновляем страницу таким образом)
 
 ipcMain.on('createOrder', function (event, order) {
-    let result = mongoConnection.mongo.orders.insert(order, function (err, docsInserted) {
-        orders.length = 0;
-        positionTo = 0;
-        positionAt = 0;
-        getOrders(event);
-    });
+    checkStatusNetwork((status) => {
+        if (status) {
+          let result = mongoConnection.mongo.orders.insert(order, function (err, docsInserted) {
+              orders.length = 0;
+              positionTo = 0;
+              positionAt = 0;
+              getOrders(event);
+          });
 
-    searchClient(order.client);
-    searchDecor(order.decor);
+          searchClient(order.client);
+          searchDecor(order.decor);
+        } else {
+          controllerLocalStore.insertOrderToLocalStore(order, (localOrder) => {
+              addLocalOrders = true;
+              if (localOrder === false) {
+                console.log('Такой заказ уже есть');
+                event.sender.send('getOrders', orders, 0, orders.length);
+              } else if (orders.length > 0) {
+                orders.unshift(order);
+                localOrders.unshift(order);
+                console.log('Создаем и кладем заказ в orders и localOrders');
+
+                event.sender.send('getOrders', orders, 0, orders.length);
+              } else {
+                console.log('Создаем и кладем заказ в localOrders');
+                localOrders.unshift(order);
+                event.sender.send('getOrders', localOrders, 0, localOrders.length);
+              }
+          });
+        }
+    });
 });
+
+function insertLocalOrdersToRemoteDb(_localOrders) {
+  checkStatusNetwork((status) => {
+     if (status) {
+       mongoConnection.mongo.orders.createIndex({ "id": 1 }, { unique: true });
+       mongoConnection.mongo.orders.insertMany(_localOrders, (err, docsInserted) => {
+          if (err) console.log(err);
+          // console.log(docsInserted);
+       });
+     } else {
+       console.log('Нет интернета');
+     }
+  });
+}
+
 
 function searchClient(client) {
   for (let i = 0; i < ordersData[0].clients.length; i++) {
@@ -271,7 +397,11 @@ ipcMain.on('deleteClientOrder', function (event, nameArray, indexItem) {
 
 
 ipcMain.on('loadOrder', function (event, arg) {
-    getOrders(event);
+  if (orders.length > 0) {
+    positionTo = orders.length;
+    positionAt = positionTo;
+  }
+  getOrders(event);
 });
 
 
@@ -349,17 +479,28 @@ function getOrders(event) {
             positionTo++;
           }, function (err) {
               if (err) console.log(err);
-              if (positionTo == positionAt) {
-                event.sender.send('getOrders', positionAt, positionTo, true);
-              } else {
-                event.sender.send('getOrders', positionAt, positionTo, false);
-              }
+              if (positionTo == positionAt) event.sender.send('getOrders', orders, positionAt, positionTo, true);
+              else                          event.sender.send('getOrders', orders, positionAt, positionTo, false);
+
               positionAt = positionTo;
+              moreDownloadOrderds = false;
           });
-        } else {
-          console.log('Забей');
         }
     });
+}
+
+function getLocalOrders(event) {
+  controllerLocalStore.getOrdersFromLocalStore((_localOrders) => {
+      moreDownloadOrderds = true;
+      if (_localOrders !== false) {
+        if (_localOrders.length > 0) {
+          localOrders = _localOrders
+          event.sender.send('getOrders', localOrders, 0, localOrders.length);
+        } else {
+          console.log('local orders is empty');
+        }
+      }
+  });
 }
 
 function checkStatusNetwork(callback) {
@@ -405,6 +546,8 @@ function getData(event) {
               console.log(err);
             } else {
               controllerLocalStore.updateClientsInLocalStore(ordersData[0].clients);
+              controllerLocalStore.updateDecorsInLocalStore(ordersData[1].decors);
+
               event.sender.send('getClients', ordersData[0]);
               event.sender.send('getDecors', ordersData[1]);
               return true;
@@ -415,6 +558,12 @@ function getData(event) {
             ordersData.push(localClients[0]);
             event.sender.send('getClients', localClients[0]);
         });
+
+        controllerLocalStore.getDecorsFromLocalStore((localDecors) => {
+            ordersData.push(localDecors[0]);
+            event.sender.send('getClients', localDecors[0]);
+        });
+
       }
   });
 }
@@ -697,10 +846,6 @@ function execute(fromDate, toDate, fromTime, toTime) {
 }
 
 ipcMain.on('searchInDB', function (event, key) {
-  // if (sync) {
-    sync = false;
-    //foundOrders = [];
-
     mongoConnection.mongo.orders
     .find(
         { $and: [
@@ -734,7 +879,6 @@ ipcMain.on('searchInDB', function (event, key) {
           return true;
         } else {
           event.sender.send('error_notFound', null);
-          sync = true;
         }
     });
   // } else {
@@ -764,7 +908,6 @@ function addOrderToOrderID(uploadOrders, event) {
       idFoundOrders.push(uploadOrders[i]);
     }
     event.sender.send('foundOrders', foundOrders);
-    sync = true;
     return true;
 }
 
