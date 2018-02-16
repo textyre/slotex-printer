@@ -15,6 +15,7 @@ ipcRenderer.on('getOrder', function (event, order, userName) {
 });
 
 ipcRenderer.on('getOperationsHistory', function (event, operationHistory) {
+    console.log(operationHistory);
     let block_historyOperation = document.getElementById('historyOperation');
     for (let i = 0; i < operationHistory.length; i++) {
       block_historyOperation.innerHTML += outOperationHistory(operationHistory[i]);

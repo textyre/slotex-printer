@@ -12,6 +12,8 @@ let loadContent = false;
 let show_buttton_showStatistics = false;
 let visibleFoundOrders = false;
 
+let statusNetwork = false;
+
 ipcRenderer.send("windowLoad", "ordersWindow");
 ipcRenderer.send('startOrdersPage', true);
 ipcRenderer.send('moreDownloadOrderds', true);
@@ -41,15 +43,23 @@ ipcRenderer.on('foundOrders', function (event, arrayOrders) {
 });
 
 const updateOnlineStatus = () => {
-  ipcRenderer.send('online-status-changed', navigator.onLine ? true : false)
+  statusNetwork = navigator.onLine ? true : false;
+  if (statusNetwork) {
+    console.log('есть сеть');
+    hideBlock_emptyNetwork();
+  } else {
+    console.log('нет сети');
+    showBlock_emptyNetwork();
+  }
+  ipcRenderer.send('online-status-changed', statusNetwork);
 }
 
 window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline',  updateOnlineStatus);
 
-updateOnlineStatus();
-
 window.addEventListener('load', function () {
+    updateOnlineStatus();
+
     let buttonDownloadOrders = document.getElementById('downloadsOrders');
     buttonDownloadOrders.addEventListener('click', function () {
       if (!loadContent) {
@@ -265,7 +275,6 @@ function showDownloadOrders() {
 function removeFoundOrders() {
   let orders = document.getElementsByClassName('buff');
   if (orders !== null) {
-    console.log(orders);
     for (let i = orders.length-1; i >= 0; i--) {
         orders[i].remove();
     }
@@ -282,6 +291,20 @@ function showBlock_buttton_showStatistics() {
 
 function hideBlock_buttton_showStatistics() {
   document.getElementById('button_showStatistics').style.display = 'none';
+  document.getElementById('main').style.paddingTop = '95px';
+  return true;
+}
+
+function showBlock_emptyNetwork() {
+  console.log('Салама');
+  document.getElementById('emptyNetwork').style.display = 'inline-flex';
+  document.getElementById('main').style.paddingTop = '0px';
+  return true;
+}
+
+function hideBlock_emptyNetwork() {
+  console.log('алейкум');
+  document.getElementById('emptyNetwork').style.display = 'none';
   document.getElementById('main').style.paddingTop = '95px';
   return true;
 }

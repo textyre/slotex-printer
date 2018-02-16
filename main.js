@@ -12,7 +12,6 @@ global.ordersData = []; //Хранятся клиенты и декоры
 global.moveBetweenDisplay = false;
 
 var foundOrders   = []; //Хранятся найденны заказы
-var idFoundOrders = []; //Хранятся id найденных заказов
 var users         = []; //Список юзеров
 var userName      = null; //Имя текущего юзера
 
@@ -198,6 +197,7 @@ ipcMain.on('windowLoad', function (event, arg) {
 
       for (let i = 0; i < localOrders.length; i++) {
         if (localOrders[i].id === orderID) {
+          console.log('fffff');
           getOperationsHistory(event, orderID);
           event.sender.send('getOrder', localOrders[i], userName);
           return true;
@@ -318,6 +318,7 @@ function mergeLocalAndRemoteOrdersHistoryCollection() {
 ipcMain.on('createOrder', function (event, order) {
     checkStatusNetwork((status) => {
         if (status) {
+          mongoConnection.mongo.orders.createIndex( { 'id': 1 }, { unique: true } );
           let result = mongoConnection.mongo.orders.insert(order, function (err, docsInserted) {
               orders.length = 0;
               positionTo = 0;
@@ -590,38 +591,36 @@ function checkStatusNetwork(callback) {
 
 
 function getOperationsHistory(event, id) {
-  if (historyOperations.length !== 0 && event !== undefined) {
-    event.sender.send('getOperationsHistory', historyOperations);
-  } else {
-    checkStatusNetwork((status) => {
-        if (status) {
-          let cursor = mongoConnection.mongo.ordersHistory.find( { 'id': id });
+  checkStatusNetwork((status) => {
+      if (status) {
+        let cursor = mongoConnection.mongo.ordersHistory.find( { 'id': id });
 
-          cursor.forEach(
-            resultHistory => {
-              if (event === undefined) {
-                historyOperations = resultHistory.history;
-              } else {
-                event.sender.send('getOperationsHistory', resultHistory.history);
-              }
-            },
+        cursor.forEach(
+          resultHistory => {
+            if (event === undefined) {
+              historyOperations = resultHistory.history;
+            } else {
+              event.sender.send('getOperationsHistory', resultHistory.history);
+            }
+          },
 
-            error => {
-              return false;
-            });
-        } else {
-          controllerLocalStore.getHistoryOrdersFromLocalStore(id, (history) => {
+          error => {
+            return false;
+          });
+      } else {
+        controllerLocalStore.getHistoryOrdersFromLocalStore(id, (history) => {
+            console.log(event);
             if (history !== false) {
               if (event === undefined) {
                 historyOperations = history[0].history;
               } else {
+                console.log(history[0].history);
                 event.sender.send('getOperationsHistory', history[0].history);
               }
             }
-          });
-        }
-    });
-  }
+        });
+      }
+  });
 }
 
 
@@ -680,22 +679,26 @@ ipcMain.on('removeOrdersID', function (event, arg) {
 });
 
 ipcMain.on('timeSearchInDB', function (event, fromDate = null, toDate = null, fromTime = null, toTime = null) {
-    foundOrders = [];
+    if (statusNetwork) {
+      foundOrders = [];
 
-    let cursor = execute(fromDate, toDate, fromTime, toTime);
-    cursor.sort({ 'dateCreate': -1 })
-    .toArray(function (err, uploadOrders) {
-        if (err) {
-          return false;
-        }
+      let cursor = execute(fromDate, toDate, fromTime, toTime);
+      cursor.sort({ 'dateCreate': -1 })
+      .toArray(function (err, uploadOrders) {
+          if (err) {
+            return false;
+          }
 
-        if (uploadOrders.length) {
-          event.sender.send('foundOrders', uploadOrders);
-          foundOrders = uploadOrders;
-        } else {
-          event.sender.send('error_notFound', null);
-        }
-    });
+          if (uploadOrders.length) {
+            event.sender.send('foundOrders', uploadOrders);
+            foundOrders = uploadOrders;
+          } else {
+            event.sender.send('error_notFound', null);
+          }
+      });
+    } else {
+      return false;
+    }
 });
 
 function execute(fromDate, toDate, fromTime, toTime) {
@@ -705,72 +708,29 @@ function execute(fromDate, toDate, fromTime, toTime) {
           //Начальная, конечная, начальное, конечное
           return mongoConnection.mongo.orders
           .find({
-                  $and: [
-                          {
-                            'beginDate': {
-                                          $gte: fromDate,
-                                          $lte: toDate
-                                        }
-                          },
-
-                          // {
-                          //   'beginTime': {
-                          //                   $gte: fromTime,
-                          //                   $lte: toTime
-                          //                }
-                          // },
-
-                          {
-                            'id': {
-                                    $not: {$in: idFoundOrders }
-                                  }
-                          }
-                        ]
+                  'beginDate': {
+                                $gte: fromDate,
+                                $lte: toDate
+                              }
                 });
         } else if (fromTime !== null && toTime === null) {
           //Начальная, конечная, начальное
           return mongoConnection.mongo.orders
-          .find({ $and: [
-                    {
-                      'beginDate': {
-                                    $gte: fromDate,
-                                    $lte: toDate
-                                  }
-                    },
-
-                    // {
-                    //   'beginTime': {$gte: fromTime}
-                    // },
-
-                    {
-                      'id': {
-                              $not: {$in: idFoundOrders }
-                            }
-                    }
-                  ]
-          });
+          .find({
+                  'beginDate': {
+                                $gte: fromDate,
+                                $lte: toDate
+                              }
+                });
         } else if (fromTime === null && toTime !== null) {
           //Начальная дата, конечная дата, конечное время
           return mongoConnection.mongo.orders
-          .find({ $and: [
-                    {
-                      'beginDate': {
-                                    $gte: fromDate,
-                                    $lte: toDate
-                                  }
-                    },
-
-                    // {
-                    //   'beginTime': {$lte: toTime}
-                    // },
-
-                    {
-                      'id': {
-                              $not: {$in: idFoundOrders }
+        .find({
+                'beginDate': {
+                              $gte: fromDate,
+                              $lte: toDate
                             }
-                    }
-                  ]
-          });
+              });
         } else {
           //Если начальная и конечная дата
           return mongoConnection.mongo.orders
@@ -785,12 +745,6 @@ function execute(fromDate, toDate, fromTime, toTime) {
                       'endDate': {
                                     $lte: toDate
                                   }
-                    },
-
-                    {
-                      'id': {
-                              $not: {$in: idFoundOrders }
-                            }
                     }
                   ]
           });
@@ -807,15 +761,8 @@ function execute(fromDate, toDate, fromTime, toTime) {
 
                 {
                   'beginTime': {
-                                  // $gte: fromTime,
                                   $lte: toTime
                                }
-                },
-
-                {
-                  'id': {
-                          $not: {$in: idFoundOrders }
-                        }
                 }
               ]
       });
@@ -823,22 +770,9 @@ function execute(fromDate, toDate, fromTime, toTime) {
     } else if (fromTime !== null && toTime === null) {
       //Начальная дата, начальное время
       return mongoConnection.mongo.orders
-      .find({ $and: [
-                {
-                  'beginDate': { $gte: fromDate }
-                },
-
-                // {
-                //   'beginTime': {$gte: fromTime}
-                // },
-
-                {
-                  'id': {
-                          $not: {$in: idFoundOrders }
-                        }
-                }
-              ]
-      });
+      .find({
+              'beginDate': { $gte: fromDate }
+            });
     } else if (fromTime === null && toTime !== null) {
       //Начальная дата, конечное время
       return mongoConnection.mongo.orders
@@ -849,12 +783,6 @@ function execute(fromDate, toDate, fromTime, toTime) {
 
                 {
                   'beginTime': { $lte: toTime }
-                },
-
-                {
-                  'id': {
-                          $not: {$in: idFoundOrders }
-                        }
                 }
               ]
       });
@@ -862,17 +790,8 @@ function execute(fromDate, toDate, fromTime, toTime) {
     } else {
       //Только начальная дата
       return mongoConnection.mongo.orders
-      .find({ $and: [
-                    {
-                      'beginDate': { $gte: fromDate }
-                    },
-
-                    {
-                      'id': {
-                              $not: {$in: idFoundOrders }
-                            }
-                    }
-                  ]
+      .find({
+              'beginDate': { $gte: fromDate }
             });
     }
   } else {
@@ -890,114 +809,54 @@ function execute(fromDate, toDate, fromTime, toTime) {
                       'endTime': {
                                       $lte: toTime
                                  }
-                    },
-
-                    {
-                      'id': {
-                              $not: {$in: idFoundOrders }
-                            }
                     }
                   ]
             });
     } else if (fromTime !== null) {
       //Начальное время
       return mongoConnection.mongo.orders
-      .find({ $and: [
-                    {
-                      'beginTime': { $gte: fromTime }
-                    },
-
-                    {
-                      'id': {
-                              $not: {$in: idFoundOrders }
-                            }
-                    }
-                  ]
+      .find({
+              'beginTime': { $gte: fromTime }
             });
 
     } else if (toTime !== null) {
       //Конечное время
       return mongoConnection.mongo.orders
-      .find({ $and: [
-                    {
-                      'endTime': { $gte: toTime }
-                    },
-
-                    {
-                      'id': {
-                              $not: {$in: idFoundOrders }
-                            }
-                    }
-                  ]
+      .find({
+              'endTime': { $gte: toTime }
             });
     }
   }
 }
 
 ipcMain.on('searchInDB', function (event, key) {
-    mongoConnection.mongo.orders
-    .find(
-        { $and: [
-                  { $or: [
-                            {'id'    : {$regex: `.*${key}.*`, $options: 'i'} },
-                            {'client': {$regex: `.*${key}.*`, $options: 'i'} },
-                            {'decor' : {$regex: `.*${key}.*`, $options: 'i'} },
-                            {'people': {$regex: `.*${key}.*`, $options: 'i'} }
-                         ]
-                  },
+    if (statusNetwork) {
+      mongoConnection.mongo.orders
+      .find({ $or: [
+                      {'id'    : {$regex: `.*${key}.*`, $options: 'i'} },
+                      {'client': {$regex: `.*${key}.*`, $options: 'i'} },
+                      {'decor' : {$regex: `.*${key}.*`, $options: 'i'} },
+                      {'people': {$regex: `.*${key}.*`, $options: 'i'} }
+                   ]
+            })
+      .sort({ 'dateCreate': -1 })
+      .toArray(function (err, uploadOrders) {
+          if (err) {
+            return false;
+          }
 
-                  {'id': { $not: {$in: idFoundOrders } } }
-                ]
-        })
-    .sort({ 'dateCreate': -1 })
-    .toArray(function (err, uploadOrders) {
-        if (err) {
-          return false;
-        }
-
-        if (uploadOrders.length) {
-          // uploadOrders = checkSameOrder(uploadOrders);
-          // console.log('=======КОЛИЧЕСТВО ЗАКАЗОВ: ' + uploadOrders.length + ' =========');
-          // console.log(uploadOrders);
-          // console.log('===========================');
-
-          // addOrderToOrderID(uploadOrders, event);
-          event.sender.send('foundOrders', uploadOrders);
-          foundOrders = uploadOrders;
-          return true;
-        } else {
-          event.sender.send('error_notFound', null);
-        }
-    });
-  // } else {
-  //   console.log('  ');
-  //   console.log('  ');
-  //   console.log('ЗАПРОС ЕЩЕ ВЫПОЛНЯЕТСЯ');
-  //   console.log('  ');
-  //   console.log('  ');
-  // }
-
+          if (uploadOrders.length) {
+            event.sender.send('foundOrders', uploadOrders);
+            foundOrders = uploadOrders;
+            return true;
+          } else {
+            event.sender.send('error_notFound', null);
+          }
+      });
+    } else {
+      return false;
+    }
 });
-
-function checkSameOrder(uploadOrders) {
-  for (let i = 0; i < foundOrders.length; i++) {
-    for (let j = 0; j < uploadOrders.length; j++) {
-      if (foundOrders[i].id == uploadOrders[j].id) {
-        uploadOrders.splice(j, 1);
-      }
-    }
-  }
-  return uploadOrders;
-}
-
-function addOrderToOrderID(uploadOrders, event) {
-    for (let i = 0; i < uploadOrders.length; i++) {
-      foundOrders.push(uploadOrders[i]);
-      idFoundOrders.push(uploadOrders[i]);
-    }
-    event.sender.send('foundOrders', foundOrders);
-    return true;
-}
 
 //*******************OPERATION WINDOW*******************//
 //*****************************************************//

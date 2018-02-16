@@ -103,12 +103,6 @@ module.exports = class ControllerLocalStore {
       });
     }
 
-    this.getHistoryOrdersFromLocalStore = function (id, callback) {
-      db.ordersHistory.find({ 'id': id }, function (err, history) {
-          _dataReclaimer(err, history, callback);
-      });
-    }
-
     this.getAll_HistoryOrdersFromLocalStore = function (callback) {
       db.ordersHistory.find({}, function (err, history) {
           _dataReclaimer(err, history, callback);

@@ -95,7 +95,8 @@ div[name=operationsBlock],
 #list.visible,
 .titleList,
 .searchbar #inputSearchBar,
-#button_showStatistics
+#button_showStatistics,
+#emptyNetwork
 {
   box-shadow: -1px -1px 2em rgba(0, 0, 0, 0.1);
 }

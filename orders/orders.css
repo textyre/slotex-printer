@@ -485,7 +485,7 @@
 }
 
 /* Блок с кнопкой "Показать статистику"  */
-#button_showStatistics
+#button_showStatistics, #emptyNetwork
 {
   display: none;
   justify-content: space-between;
@@ -500,6 +500,17 @@
   background-color: white;
 
   z-index: 2;
+}
+
+#emptyNetwork
+{
+  background-color: #F07070;
+  color: white;
+  font-size: 16px;
+  font-family: Ubuntu;
+  font-weight: 600;
+  padding-left: 2%;
+  width: 75%;
 }
 
 /* Блок с интервалом времени */
@@ -793,7 +804,7 @@
     width: 15%;
   }
 
-  #main, .searchbar #inputSearchBar, #list.visible, #button_showStatistics
+  #main, .searchbar #inputSearchBar, #list.visible, #button_showStatistics, #emptyNetwork
   {
     margin-left: 17%;
   }
@@ -803,7 +814,7 @@
     width: 83%;
   }
 
-  #button_showStatistics
+  #button_showStatistics, #emptyNetwork
   {
     width: 82.1%;
   }

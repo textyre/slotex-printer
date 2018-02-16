@@ -55,94 +55,104 @@ window.addEventListener('load', function () {
     //Удалить элемент "Ничего не найдено! :("
 
     inputFromDate.addEventListener('focus', function() {
-        hideButtonDowloadOrders();
-        inputFromDate.value = '';
+        if (statusNetwork) {
+          hideButtonDowloadOrders();
+          inputFromDate.value = '';
 
-        if (errorFromDate_incorrect.style.display === 'block')
-          showHideErrorFromDate(true);
+          if (errorFromDate_incorrect.style.display === 'block')
+            showHideErrorFromDate(true);
 
-        removeErrorNotFoundOnDisplay();
+          removeErrorNotFoundOnDisplay();
+        }
     });
 
-    inputFromDate.addEventListener('keyup', function(event) {
-        keyInputs = event.key;
-    });
+    // inputFromDate.addEventListener('keyup', function(event) {
+    //     keyInputs = event.key;
+    // });
 
     inputFromDate.addEventListener('focusout', function() {
-        let valueFromDate = inputFromDate.value;
+        if (statusNetwork) {
+          let valueFromDate = inputFromDate.value;
 
-        if (valueFromDate === '' || valueFromDate === undefined) {
-          disableInputToDate(inputToDate);
-          callHideBlock_Buttton_ShowStatistics(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
-          return false;
-        }
+          if (valueFromDate === '' || valueFromDate === undefined) {
+            disableInputToDate(inputToDate);
+            callHideBlock_Buttton_ShowStatistics(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
+            return false;
+          }
 
-        let date = valueFromDate.split('.');
-        if (date.length === 3) {
-          let flag = checkOnErrorInputDate(valueFromDate);
+          let date = valueFromDate.split('.');
+          if (date.length === 3) {
+            let flag = checkOnErrorInputDate(valueFromDate);
 
-          if (flag) {
-            activableInputToDate(inputToDate);
-            hideDownloadOrders();
-            toDatePickerSettings(valueFromDate);
-            sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
-            return true;
+            if (flag) {
+              activableInputToDate(inputToDate);
+              hideDownloadOrders();
+              toDatePickerSettings(valueFromDate);
+              sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
+              return true;
+            } else {
+              showHideErrorFromDate(false);
+              return false;
+            }
           } else {
             showHideErrorFromDate(false);
             return false;
           }
-        } else {
-          showHideErrorFromDate(false);
-          return false;
         }
     });
 
     //Если показана ошибка - скрыть
     //Удалить элемент "Ничего не найдено! :("
     inputToDate.addEventListener('focus', function() {
-        inputToDate.value = '';
+        if (statusNetwork) {
+          inputToDate.value = '';
 
-        if (errorToDate_incorrect.style.display === 'block') {
-          showHideErrorIncorrectToDate(true);
-        } else if (errorToDate_min.style.display === 'block') {
-          showHideErrorMinRageToDate(true);
+          if (errorToDate_incorrect.style.display === 'block') {
+            showHideErrorIncorrectToDate(true);
+          } else if (errorToDate_min.style.display === 'block') {
+            showHideErrorMinRageToDate(true);
+          }
+          removeErrorNotFoundOnDisplay();
         }
-        removeErrorNotFoundOnDisplay();
     });
 
     //Если дата содержит день, месяц, год - продолжить, иначе вывести ошибку
     //Если конечная дата меньше начальной - ошибка, иначе продолжить
     //Если день, месяц, год указаны правильно - продолжить, иначе ошибка
     inputToDate.addEventListener('focusout', function() {
-        let valueToDate = inputToDate.value;
+        if (statusNetwork) {
+          let valueToDate = inputToDate.value;
 
-        let date  = valueToDate.split('.');
-        if (date.length === 3) {
-          let minMaxFlag = checkMinMaxRange(inputFromDate.value, date);
-          if (minMaxFlag) {
-            let flag = checkOnErrorInputDate(valueToDate);
-            if (flag) {
-              sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
+          let date  = valueToDate.split('.');
+          if (date.length === 3) {
+            let minMaxFlag = checkMinMaxRange(inputFromDate.value, date);
+            if (minMaxFlag) {
+              let flag = checkOnErrorInputDate(valueToDate);
+              if (flag) {
+                sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
+              } else {
+                console.log('Неверная дата 1');
+                showHideErrorIncorrectToDate(false);
+              }
             } else {
-              console.log('Неверная дата 1');
-              showHideErrorIncorrectToDate(false);
+              showHideErrorMinRageToDate(false);
             }
           } else {
-            showHideErrorMinRageToDate(false);
-          }
-        } else {
-          if (valueToDate === '') {
-            return true;
-          } else {
-            showHideErrorIncorrectToDate(false);
+            if (valueToDate === '') {
+              return true;
+            } else {
+              showHideErrorIncorrectToDate(false);
+            }
           }
         }
     });
 
     inputFromTime.addEventListener('focus', function() {
-        inputFromTime.value = '';
-        hideButtonDowloadOrders();
-        removeErrorNotFoundOnDisplay();
+        if (statusNetwork) {
+          inputFromTime.value = '';
+          hideButtonDowloadOrders();
+          removeErrorNotFoundOnDisplay();
+        }
     });
 
     //Если значение не пустое, то скрываем загруженные заказы
@@ -150,36 +160,42 @@ window.addEventListener('load', function () {
     //Найти заказы по фильтру
     //Иначе вызвать функцию скрытия блока "Показать статистику"
     inputFromTime.addEventListener('focusout', function() {
-        let valueFromTime = inputFromTime.value;
-        if (valueFromTime !== '') {
-          hideDownloadOrders();
-          if (!show_buttton_showStatistics) {
-            show_buttton_showStatistics = showBlock_buttton_showStatistics();
+        if (statusNetwork) {
+          let valueFromTime = inputFromTime.value;
+          if (valueFromTime !== '') {
+            hideDownloadOrders();
+            if (!show_buttton_showStatistics) {
+              show_buttton_showStatistics = showBlock_buttton_showStatistics();
+            }
+            sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
+          } else {
+            disableInputFromTime(inputFromTime);
+            callHideBlock_Buttton_ShowStatistics(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
           }
-          sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
-        } else {
-          disableInputFromTime(inputFromTime);
-          callHideBlock_Buttton_ShowStatistics(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
         }
     });
 
     inputToTime.addEventListener('focus', function() {
-        inputToTime.value = '';
-        hideButtonDowloadOrders();
-        removeErrorNotFoundOnDisplay();
+        if (statusNetwork) {
+          inputToTime.value = '';
+          hideButtonDowloadOrders();
+          removeErrorNotFoundOnDisplay();
+        }
     });
 
     inputToTime.addEventListener('focusout', function() {
-        let valueToTime = inputToTime.value;
-        if (valueToTime !== '') {
-          hideDownloadOrders();
-          if (!show_buttton_showStatistics) {
-            show_buttton_showStatistics = showBlock_buttton_showStatistics();
+        if (statusNetwork) {
+          let valueToTime = inputToTime.value;
+          if (valueToTime !== '') {
+            hideDownloadOrders();
+            if (!show_buttton_showStatistics) {
+              show_buttton_showStatistics = showBlock_buttton_showStatistics();
+            }
+            sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
+          } else {
+            disableInputToTime(inputToTime);
+            callHideBlock_Buttton_ShowStatistics(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
           }
-          sendInputsDataInMain(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
-        } else {
-          disableInputToTime(inputToTime);
-          callHideBlock_Buttton_ShowStatistics(inputFromDate.value, inputToDate.value, inputFromTime.value, inputToTime.value);
         }
     });
 });

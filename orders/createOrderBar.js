@@ -13,7 +13,6 @@ window.addEventListener('click', function () {
             event.target.id != 'list'        &&
             event.target.className != 'btnDeleteClientDecor') closeList();
     }
-    console.log(event.target);
 });
 
 ipcRenderer.on('getClients', function (event, objectClients) {
