@@ -42,7 +42,7 @@ window.addEventListener('load', function () {
 function outBeginEndTime(fromTime, toTime) {
   let timeBegin = document.getElementById('timeBegin');
   let timeEnd   = document.getElementById('timeEnd');
-  
+
   let options = {
     year: 'numeric',
     month: 'numeric',
@@ -50,8 +50,17 @@ function outBeginEndTime(fromTime, toTime) {
     hour: 'numeric',
     minute: 'numeric'
   }
-  timeBegin.innerHTML = new Date(fromTime).toLocaleString('ru-RU', options).replace(',', '');
-  timeEnd.innerHTML   = new Date(toTime).toLocaleString('ru-RU', options).replace(',', '');
+  if (fromTime === '' || fromTime === undefined || fromTime === ' ') {
+    timeBegin.innerHTML = ' - '
+  } else {
+    timeBegin.innerHTML = new Date(fromTime).toLocaleString('ru-RU', options).replace(',', '');
+  }
+
+  if (toTime === '' || toTime === undefined || toTime === ' ') {
+    timeEnd.innerHTML = ' - '
+  } else {
+    timeEnd.innerHTML = new Date(toTime).toLocaleString('ru-RU', options).replace(',', '');
+  }
 }
 
 function outTotalTime(useful, unhelpful, necessary) {

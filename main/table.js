@@ -17,6 +17,7 @@ window.onload = function windowLoad() {
         nameOperation = event.target.textContent;
 
         operation = [classOperation, nameOperation, 0];
+        console.log(operation);
         outOperation(operation, lastIndex);
       }
   });

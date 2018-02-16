@@ -11,14 +11,14 @@ module.exports = class ControllerLocalStore {
         db.users         = new Datastore({ filename: path.join(app.getPath('userData'), 'users.db'), autoload: true });
         db.orders        = new Datastore({ filename: path.join(app.getPath('userData'), 'orders.db'), autoload: true });
         db.ordersData    = new Datastore({ filename: path.join(app.getPath('userData'), 'ordersData.db'), autoload: true });
-        // db.ordersHistory = new Datastore({ filename: `/tmp/ordersHistory.db`, autoload: true });
+        db.ordersHistory = new Datastore({ filename: path.join(app.getPath('userData'), 'ordersHistory.db'), autoload: true });
 
     this.updateUsersInLocalStore = function (users) {
       db.users.update({ 'id': 'users' },
                       { 'id': 'users', 'users': users },
                       { upsert: true },
                       (err, docUpdated) => {
-                        if (err) console.log(err);
+                        if (err) return false;
                         console.log(succesfull_update_users);
                       }
       );
@@ -35,7 +35,7 @@ module.exports = class ControllerLocalStore {
                            { 'id': 'clients', 'clients': clients },
                            { upsert: true },
                            (err, docUpdated) => {
-                             if (err) console.log(err);
+                             if (err) return false;
                              console.log(succesfull_update_clients);
                            }
       );
@@ -52,7 +52,7 @@ module.exports = class ControllerLocalStore {
                            { 'id': 'decors', 'decors': decors },
                            { upsert: true },
                            (err, docUpdated) => {
-                             if (err) console.log(err);
+                             if (err) return false;
                              console.log(succesfull_update_decors);
                            }
       );
@@ -88,12 +88,44 @@ module.exports = class ControllerLocalStore {
           callback(docsRemoved);
       });
     }
+
+    this.updateOrderInLocalStore = function (id, order) {
+      _updateOrder(db.orders, id, order);
+    }
+
+    this.updateHistoryOrderInLocalStore = function (id, history) {
+      _updateHistoryOrder(db.ordersHistory, id, history);
+    }
+
+    this.getHistoryOrdersFromLocalStore = function (id, callback) {
+      db.ordersHistory.find({ 'id': id }, function (err, history) {
+          _dataReclaimer(err, history, callback);
+      });
+    }
+
+    this.getHistoryOrdersFromLocalStore = function (id, callback) {
+      db.ordersHistory.find({ 'id': id }, function (err, history) {
+          _dataReclaimer(err, history, callback);
+      });
+    }
+
+    this.getAll_HistoryOrdersFromLocalStore = function (callback) {
+      db.ordersHistory.find({}, function (err, history) {
+          _dataReclaimer(err, history, callback);
+      });
+    }
+
+    this.removeAll_HistoryOrderFromLocalStore = function (callback) {
+      db.ordersHistory.remove({}, { multi: true }, function (err, docsRemoved) {
+          callback(docsRemoved);
+      });
+    }
   }
 }
 
 function createIndexInOrders(db) {
   db.ensureIndex({ fieldName: 'id', unique: true }, function (err) {
-      if (err) console.log(err);
+      if (err) return false;
   });
 }
 
@@ -104,4 +136,47 @@ function _dataReclaimer(err, data, callback) {
   } else {
     return callback(data);
   }
+}
+
+function _updateOrder(collection, id, order) {
+  collection.update(
+      { 'id': id },
+      {
+         'beginDate': order.beginDate,
+         'beginTime': order.beginTime,
+            'client': order.client,
+             'count': order.count,
+        'dateCreate': order.dateCreate,
+             'decor': order.decor,
+           'endDate': order.endDate,
+           'endTime': order.endTime,
+                'id': order.id,
+              'info': order.info,
+     'necessaryTime': order.necessaryTime,
+            'people': order.people,
+            'status': order.status,
+     'unhelpfulTime': order.unhelpfulTime,
+        'usefulTime': order.usefulTime,
+       'userCreater': order.userCreater,
+            'weight': order.weight
+      },
+      { upsert: true },
+
+      (err, docUpdated) => {
+        if (err) console.log(err);
+      });
+}
+
+function _updateHistoryOrder(collection, id, history) {
+  collection.update(
+                      { 'id': id },
+                      {
+                        'id': id,
+                        'history': history
+                      },
+                      { upsert: true },
+
+  (err, docsUpdated) => {
+      if (err) return false;
+  });
 }

@@ -42,6 +42,8 @@ let controllerLocalStore = new ControllerLocalStore(app);
 var startOrdersPage     = false;
 var moreDownloadOrderds = false;
 var addLocalOrders      = true;
+var statusNetwork       = false;
+var workArrayOrders     = [];
 
 //При запуске приложения получаем юзеров или ошибку
 app.on('ready', () => {
@@ -59,7 +61,7 @@ app.on('ready', () => {
 
 
 app.on('before-quit', (event) => {
-    stopOperation();
+    stopOperation(workArrayOrders);
     mongoConnection.closeConnect();
 });
 
@@ -121,7 +123,7 @@ function firstConnectionToDb(event) {
         });
       } else {
         mongoConnection.mongo.users.find().toArray((err, usersObject) => {
-            if (err) console.log(err);
+            if (err) return false
             users = usersObject[0].users;
             controllerLocalStore.updateUsersInLocalStore(users);
             event.sender.send('getUsers', users);
@@ -153,6 +155,7 @@ ipcMain.on('windowLoad', function (event, arg) {
         if (orders[i].id === orderID) {
           event.sender.send('getOrder', orders[i], userName);
           event.sender.send('getOperations', orders[i], focusIndex);
+          workArrayOrders = orders;
           return true;
         }
       }
@@ -161,6 +164,7 @@ ipcMain.on('windowLoad', function (event, arg) {
         if (foundOrders[i].id === orderID) {
           event.sender.send('getOrder', foundOrders[i], userName);
           event.sender.send('getOperations', foundOrders[i], focusIndex);
+          workArrayOrders = foundOrders;
           return true;
         }
       }
@@ -169,6 +173,7 @@ ipcMain.on('windowLoad', function (event, arg) {
         if (localOrders[i].id === orderID) {
           event.sender.send('getOrder', localOrders[i], userName);
           event.sender.send('getOperations', localOrders[i], focusIndex);
+          workArrayOrders = localOrders;
           return true;
         }
       }
@@ -217,12 +222,23 @@ ipcMain.on('moreDownloadOrderds', (event, status) => {
     moreDownloadOrderds = true;
 });
 
+ipcMain.on('online-status-changed-panel', (event, status) => {
+    statusNetwork = status;
+    if (status) {
+      mergeLocalAndRemoteOrdersCollection();
+      mergeLocalAndRemoteOrdersHistoryCollection();
+    } else {
+      return true;
+    }
+});
+
 ipcMain.on('online-status-changed', (event, status) => {
-    console.log('online-status-changed:::orders', orders);
+    statusNetwork = status;
     if (status) {
       if (addLocalOrders || orders.length === 0) {
         console.log('Был добавлен локально заказ и мы его заливаем в монгу');
         mergeLocalAndRemoteOrdersCollection();
+        mergeLocalAndRemoteOrdersHistoryCollection();
       }
 
       if (orders.length === 0 && startOrdersPage) {
@@ -258,16 +274,12 @@ ipcMain.on('online-status-changed', (event, status) => {
 });
 
 function concatLocalAndRemoteOrders(event) {
-  console.log('++++++');
-  console.log(orders);
-  console.log('++++++');
-  orders = orders.concat(localOrders);
-  console.log('=====');
-  console.log(orders);
-  console.log('=====');
-
-  getOrders(event);
-  moreDownloadOrderds = false;
+  // orders = orders.concat(localOrders);
+  //Синхронизация
+  setTimeout(() => {
+    getOrders(event);
+    moreDownloadOrderds = false;
+  }, 1000);
 }
 
 function mergeLocalAndRemoteOrdersCollection() {
@@ -276,11 +288,24 @@ function mergeLocalAndRemoteOrdersCollection() {
      if (_localOrders.length > 0) {
        insertLocalOrdersToRemoteDb(_localOrders);
        controllerLocalStore.removeAllOrdersFromLocalStore((result) => {
-         console.log(result);
+          return true;
        });
      } else {
        return true;
      }
+  });
+}
+
+function mergeLocalAndRemoteOrdersHistoryCollection() {
+  controllerLocalStore.getAll_HistoryOrdersFromLocalStore((_localHistory) => {
+      if (_localHistory !== false && _localHistory.length > 0) {
+        insertLocalHistoryToRemoteDb(_localHistory);
+        controllerLocalStore.removeAll_HistoryOrderFromLocalStore((result) => {
+           return true;
+        });
+      } else {
+        return true;
+      }
   });
 }
 
@@ -307,7 +332,7 @@ ipcMain.on('createOrder', function (event, order) {
               addLocalOrders = true;
               if (localOrder === false) {
                 console.log('Такой заказ уже есть');
-                event.sender.send('getOrders', orders, 0, orders.length);
+                event.sender.send('getOrders', localOrders, 0, localOrders.length);
               } else if (orders.length > 0) {
                 orders.unshift(order);
                 localOrders.unshift(order);
@@ -328,13 +353,55 @@ function insertLocalOrdersToRemoteDb(_localOrders) {
   checkStatusNetwork((status) => {
      if (status) {
        mongoConnection.mongo.orders.createIndex({ "id": 1 }, { unique: true });
-       mongoConnection.mongo.orders.insertMany(_localOrders, (err, docsInserted) => {
-          if (err) console.log(err);
-          // console.log(docsInserted);
-       });
+       for (let i = 0; i < _localOrders.length; i++) {
+         console.log('Обновление заказа');
+         console.log(_localOrders[i]);
+         mongoConnection.mongo.orders.update(
+           { 'id': _localOrders[i].id },
+           {
+              'beginDate': _localOrders[i].beginDate,
+              'beginTime': _localOrders[i].beginTime,
+                 'client': _localOrders[i].client,
+                  'count': _localOrders[i].count,
+             'dateCreate': _localOrders[i].dateCreate,
+                  'decor': _localOrders[i].decor,
+                'endDate': _localOrders[i].endDate,
+                'endTime': _localOrders[i].endTime,
+                     'id': _localOrders[i].id,
+                   'info': _localOrders[i].info,
+          'necessaryTime': _localOrders[i].necessaryTime,
+                 'people': _localOrders[i].people,
+                 'status': _localOrders[i].status,
+          'unhelpfulTime': _localOrders[i].unhelpfulTime,
+             'usefulTime': _localOrders[i].usefulTime,
+            'userCreater': _localOrders[i].userCreater,
+                 'weight': _localOrders[i].weight
+           },
+           { upsert: true },
+           (err, docInserted) => {
+             if (err) console.log(err);;
+           });
+       }
      } else {
-       console.log('Нет интернета');
+       return false;
      }
+  });
+}
+
+function insertLocalHistoryToRemoteDb(_localHistory) {
+  checkStatusNetwork((status) => {
+      if (status) {
+        mongoConnection.mongo.ordersHistory.createIndex({ 'id': 1 }, { unique: true });
+        for (let i = 0; i < _localHistory.length; i++) {
+          console.log('Обновление истории операций');
+          console.log(_localHistory[i]);
+          mongoConnection.mongo.ordersHistory.update( { 'id': _localHistory[i].id }, { 'id': _localHistory[i].id, 'history': _localHistory[i].history }, { upsert: true }, (err, docsUpdated) => {
+            if (err) console.log(err);;
+          });
+        }
+      } else {
+        console.log('Error: История операций из локального хранлища в удаленное не перенасена');
+      }
   });
 }
 
@@ -364,7 +431,7 @@ function addCLientInDb(client) {
     { 'id': 'clients' },
     { $push: { 'clients': client } },
     (err, result) => {
-      if (err) console.log(err);
+      if (err) return false;
       ordersData[0].clients.push(client)
     });
 }
@@ -374,7 +441,7 @@ function addOrderInDb(decor) {
     { 'id': 'decors' },
     { $push: { 'decors': decor } },
     (err, result) => {
-      if (err) console.log(err);
+      if (err) return false;
       ordersData[1].decors.push(decor);
     });
 }
@@ -391,7 +458,7 @@ ipcMain.on('deleteClientOrder', function (event, nameArray, indexItem) {
     }
     mongoConnection.mongo.ordersData.update({ 'id': nameArray }, ordersData[indexPasteOrderData],
     (err, docUpdated) => {
-      console.log(docUpdated);
+        if (err) return false;
     });
 });
 
@@ -434,7 +501,7 @@ ipcMain.on('deleteOrder', function (event, id) {
         deleteOrderInDb(id);
         deleteHistoryOrderInDb(id);
         if (orderRun === id) {
-          stopOperation();
+          stopOperation(workArrayOrders);
           orderRun = null;
           historyOperations = [];
         }
@@ -453,7 +520,7 @@ function deleteOrderInDb(id) {
 function deleteHistoryOrderInDb(id) {
   mongoConnection.mongo.ordersHistory.remove({ 'id': id },
   {
-    justOne: true
+      justOne: true
   });
 }
 
@@ -477,8 +544,10 @@ function getOrders(event) {
               getOperationsHistory(undefined, orderRun);
             }
             positionTo++;
+            console.log('=========');
+            console.log(doc);
           }, function (err) {
-              if (err) console.log(err);
+              if (err) return false;
               if (positionTo == positionAt) event.sender.send('getOrders', orders, positionAt, positionTo, true);
               else                          event.sender.send('getOrders', orders, positionAt, positionTo, false);
 
@@ -496,6 +565,12 @@ function getLocalOrders(event) {
         if (_localOrders.length > 0) {
           localOrders = _localOrders
           event.sender.send('getOrders', localOrders, 0, localOrders.length);
+          for (let i = 0; i < localOrders.length; i++) {
+            if (localOrders[i].status === 'run') {
+              orderRun = localOrders[i].id;
+              getOperationsHistory(undefined, orderRun);
+            }
+          }
         } else {
           console.log('local orders is empty');
         }
@@ -515,22 +590,38 @@ function checkStatusNetwork(callback) {
 
 
 function getOperationsHistory(event, id) {
+  if (historyOperations.length !== 0 && event !== undefined) {
+    event.sender.send('getOperationsHistory', historyOperations);
+  } else {
+    checkStatusNetwork((status) => {
+        if (status) {
+          let cursor = mongoConnection.mongo.ordersHistory.find( { 'id': id });
 
-  let cursor = mongoConnection.mongo.ordersHistory
-  .find({ 'id': id }, { 'history': 1, '_id': 0 } );
+          cursor.forEach(
+            resultHistory => {
+              if (event === undefined) {
+                historyOperations = resultHistory.history;
+              } else {
+                event.sender.send('getOperationsHistory', resultHistory.history);
+              }
+            },
 
-  cursor.forEach(
-    resultHistory => {
-      if (event === undefined) {
-        historyOperations = resultHistory.history;
-      } else {
-        event.sender.send('getOperationsHistory', resultHistory.history);
-      }
-    },
-
-    error => {
-      console.log(error);
+            error => {
+              return false;
+            });
+        } else {
+          controllerLocalStore.getHistoryOrdersFromLocalStore(id, (history) => {
+            if (history !== false) {
+              if (event === undefined) {
+                historyOperations = history[0].history;
+              } else {
+                event.sender.send('getOperationsHistory', history[0].history);
+              }
+            }
+          });
+        }
     });
+  }
 }
 
 
@@ -543,7 +634,7 @@ function getData(event) {
           ordersData.push(doc);
         }, function (err) {
             if (err) {
-              console.log(err);
+              return false;
             } else {
               controllerLocalStore.updateClientsInLocalStore(ordersData[0].clients);
               controllerLocalStore.updateDecorsInLocalStore(ordersData[1].decors);
@@ -576,7 +667,7 @@ function getUsers(event) {
     users.push(doc);
   }, function (err) {
       if (err) {
-        console.log(err);
+        return false;
       } else {
         event.sender.send('getUsers', users);
         return true;
@@ -595,7 +686,6 @@ ipcMain.on('timeSearchInDB', function (event, fromDate = null, toDate = null, fr
     cursor.sort({ 'dateCreate': -1 })
     .toArray(function (err, uploadOrders) {
         if (err) {
-          console.log(err);
           return false;
         }
 
@@ -609,7 +699,6 @@ ipcMain.on('timeSearchInDB', function (event, fromDate = null, toDate = null, fr
 });
 
 function execute(fromDate, toDate, fromTime, toTime) {
-  console.log(fromDate, toDate, fromTime, toTime);
   if (fromDate !== null) {
       if (toDate !== null) {
         if (fromTime !== null && toTime !== null) {
@@ -863,7 +952,6 @@ ipcMain.on('searchInDB', function (event, key) {
     .sort({ 'dateCreate': -1 })
     .toArray(function (err, uploadOrders) {
         if (err) {
-          console.log(err);
           return false;
         }
 
@@ -926,12 +1014,23 @@ ipcMain.on('setStatus', function (event, id) {
       return false;
     }
 
-    for (let i = 0; i < orders.length; i++) {
-      if (orders[i].id == id) {
-        orders[i].status = 'run';
-        orders[i].beginDate = new Date().toISOString();
-        orders[i].beginTime = getCurrentTime();
-        event.returnValue = true;
+    if (orders.length !== 0) {
+      for (let i = 0; i < orders.length; i++) {
+        if (orders[i].id == id) {
+          orders[i].status = 'run';
+          orders[i].beginDate = new Date().toISOString();
+          orders[i].beginTime = getCurrentTime();
+          event.returnValue = true;
+        }
+      }
+    } else if (localOrders.length !== 0) {
+      for (let i = 0; i < localOrders.length; i++) {
+        if (localOrders[i].id == id) {
+          localOrders[i].status = 'run';
+          localOrders[i].beginDate = new Date().toISOString();
+          localOrders[i].beginTime = getCurrentTime();
+          event.returnValue = true;
+        }
       }
     }
 });
@@ -939,26 +1038,6 @@ ipcMain.on('setStatus', function (event, id) {
 ipcMain.on('setOrderRun', (event, id) => {
     orderRun = id;
 });
-
-// ipcMain.on('setHistoryOperation', function (event, classNameOperation, nameOperation, timeOperation) {
-//     for (let i = 0; i < orders.length; i++) {
-//       if (orders[i].id === orderRun) {
-//         for (let j = 0; j < orders[i].info.length; j++) {
-//           if (orders[i].info[j][1] === nameOperation) {
-//             orders[i].info[j][4] = getCurrentDate() + ' ' + getCurrentTime();
-//           }
-//         }
-//         let endDateOperation = getCurrentDate() + ' ' + getCurrentTime();
-//         let history          = [];
-//             history.push(classNameOperation)
-//             history.push(nameOperation);
-//             history.push(beginDateOperation);
-//             history.push(endDateOperation);
-//             history.push(lastTimeOperation);
-//       }
-//     }
-// });
-
 
 //Запуск операции
 //Запоминаем индекса последнего запущенного элемента
@@ -968,11 +1047,10 @@ ipcMain.on('setOrderRun', (event, id) => {
 //Увеличиваем время у класс операций
 
 ipcMain.on('startOperation', function (event, operation) {
-
     focusIndex         = operation[4];
     beginDateOperation = fromDate(beginDateOperation);
 
-    stopOperation();
+    stopOperation(workArrayOrders);
 
     if (nameOperation !== operation[1]) {
       lastTimeOperation = 0;
@@ -980,8 +1058,8 @@ ipcMain.on('startOperation', function (event, operation) {
 
     nameOperation = operation[1];
 
-    addWorkUser();
-    editOrder(operation);
+    addWorkUser(workArrayOrders);
+    editOrder(workArrayOrders, operation);
     addHistoryOperation(operation);
 
     BlockIntervalID = setInterval(function run() { //Создаем новый таймер для операций
@@ -993,15 +1071,14 @@ ipcMain.on('startOperation', function (event, operation) {
         event.sender.send('setTime', operation);
       }
 
-      setTimeClass(operation[0]);
-      editOrder(operation);
+      setTimeClass(workArrayOrders, operation[0]);
+      editOrder(workArrayOrders, operation);
       editHistoryOperation();
       addHistoryToDB();
-      console.log(historyOperations);
 
-      for (let i = 0; i < orders.length; i++) {
-        if (orders[i].id === orderRun) {
-          updateOrder(orders[i].id, orders[i]);
+      for (let i = 0; i < workArrayOrders.length; i++) {
+        if (workArrayOrders[i].id === orderRun) {
+          updateOrder(workArrayOrders[i].id, workArrayOrders[i]);
           break;
         }
       }
@@ -1042,28 +1119,35 @@ function editHistoryOperation() {
 
   let endDateOperation = hours.toLocaleString('ru-RU', optionsForTime);
 
-  historyOperations[historyOperations.length - 1][3] = getCurrentDate() + getCurrentTime();
+  historyOperations[historyOperations.length - 1][3] = getCurrentDate() + ' ' + getCurrentTime();
   historyOperations[historyOperations.length - 1][4] = lastTimeOperation;
 }
 
 function addHistoryToDB() {
-  mongoConnection.mongo.ordersHistory.update({ 'id': orderRun },
-  { 'id': orderRun,
-    'history': historyOperations
-  },
-  { upsert: true },
-  (err, docsUpdated) => {
-      if (err) console.log(err);
-      // else console.log(docUpdated);
+  checkStatusNetwork((status) => {
+      if (status) {
+        mongoConnection.mongo.ordersHistory.update({ 'id': orderRun },
+        {
+          'id': orderRun,
+          'history': historyOperations
+        },
+        { upsert: true },
+        (err, docsUpdated) => {
+            if (err) console.log(err);
+            // else console.log(docUpdated);
+        });
+      } else {
+        controllerLocalStore.updateHistoryOrderInLocalStore(orderRun, historyOperations);
+      }
   });
 }
 
-function setEndTimeOperation() {
-  for (let i = 0; i < orders.length; i++) {
-    if (orders[i].id === orderRun) {
-      for (let j = 0; j < orders[i].info.length; j++) {
-        if (orders[i].info[j][1] === nameOperation) {
-          orders[i].info[j][4] = getCurrentDate() + ' ' + getCurrentTime();
+function setEndTimeOperation(_orders) {
+  for (let i = 0; i < _orders.length; i++) {
+    if (_orders[i].id === orderRun) {
+      for (let j = 0; j < _orders[i].info.length; j++) {
+        if (_orders[i].info[j][1] === nameOperation) {
+          _orders[i].info[j][4] = getCurrentDate() + ' ' + getCurrentTime();
           return true;
         }
       }
@@ -1078,7 +1162,7 @@ function fromDate(beginDateOperation) {
 }
 
 //Находим запущенный заказ, если работника в массиве нет, то добавляем, иначе возврат
-function addWorkUser() {
+function addWorkUser(orders) {
   for (let i = 0; i < orders.length; i++) {
     if (orders[i].id == orderRun) {
       for (let j = 0; j < orders[i].people.length; j++) {
@@ -1090,17 +1174,17 @@ function addWorkUser() {
 }
 
 //Останавливаем и очищаем интервал
-function stopOperation() {
+function stopOperation(_orders) {
   if(BlockIntervalID != null) {
     clearInterval(BlockIntervalID);
-    setEndTimeOperation();
+    setEndTimeOperation(_orders);
     BlockIntervalID = null;
   }
 }
 
 
 //Находим запущенный процесс и передаем в addOperation: операции и операцию из представления
-function editOrder(operation) {
+function editOrder(orders, operation) {
   for (let i = 0; i < orders.length; i++) {
     if (orders[i].id == orderRun) addOperation(orders[i].info, operation);
   }
@@ -1123,7 +1207,7 @@ function addOperation(arrOperation, operation) {
 //Находим запущенную операцию
 //Сравниваем переданный класс операцию и меняем значение времени этого класса
 
-function setTimeClass(className) {
+function setTimeClass(orders, className) {
   for (let i = 0; i < orders.length; i++) {
     if (orders[i].id == orderRun) {
       switch (className) {
@@ -1163,17 +1247,17 @@ function setTimeClass(className) {
 
 ipcMain.on('closeOrder', function (event, id) {
     if (orderRun == id) {
-      stopOperation();
-      for (let i = 0; i < orders.length; i++) {
-        if (orders[i].id == orderRun) {
-          orders[i].status = 'close';
-          orders[i].endDate = new Date().toISOString();
-          orders[i].endTime = getCurrentTime();
+      stopOperation(workArrayOrders);
+      for (let i = 0; i < workArrayOrders.length; i++) {
+        if (workArrayOrders[i].id == orderRun) {
+          workArrayOrders[i].status = 'close';
+          workArrayOrders[i].endDate = new Date().toISOString();
+          workArrayOrders[i].endTime = getCurrentTime();
 
-          updateOrder(orderRun, orders[i]);
+          updateOrder(orderRun, workArrayOrders[i]);
           orderRun = null;
           historyOperations = [];
-          event.sender.send('showCloseOrder', orders[i]);
+          event.sender.send('showCloseOrder', workArrayOrders[i]);
         }
       }
     } else {
@@ -1182,11 +1266,41 @@ ipcMain.on('closeOrder', function (event, id) {
 });
 
 function updateOrder(id, order) {
-  mongoConnection.mongo.orders.update(
-      { 'id': id },
-      order
-  , function (err, docUpdated) {
-    return true;
+  checkStatusNetwork((status) => {
+     if (status) {
+       mongoConnection.mongo.orders.update(
+           { 'id': id },
+           {
+              'beginDate': order.beginDate,
+              'beginTime': order.beginTime,
+                 'client': order.client,
+                  'count': order.count,
+             'dateCreate': order.dateCreate,
+                  'decor': order.decor,
+                'endDate': order.endDate,
+                'endTime': order.endTime,
+                     'id': order.id,
+                   'info': order.info,
+          'necessaryTime': order.necessaryTime,
+                 'people': order.people,
+                 'status': order.status,
+          'unhelpfulTime': order.unhelpfulTime,
+             'usefulTime': order.usefulTime,
+            'userCreater': order.userCreater,
+                 'weight': order.weight
+           },
+           {
+             upsert: true
+           }
+       , function (err, docUpdated) {
+         return true;
+       });
+     } else {
+       console.log('Обновление заказа локально');
+       console.log(id);
+       console.log(order);
+       controllerLocalStore.updateOrderInLocalStore(id, order);
+     }
   });
 }
 

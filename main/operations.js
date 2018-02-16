@@ -17,8 +17,17 @@ let status;
 let _order;
 
 let allOutOperationsOnDisplay = true;
-window.addEventListener('load', function () {
 
+const updateOnlineStatus = () => {
+  ipcRenderer.send('online-status-changed-panel', navigator.onLine ? true : false)
+}
+
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline',  updateOnlineStatus);
+
+updateOnlineStatus();
+
+window.addEventListener('load', function () {
     ipcRenderer.on('getOperations', function (event, order, focusIndex) {
         status = order.status;
         _order = order;
@@ -45,6 +54,7 @@ window.addEventListener('load', function () {
           break;
 
           default:
+            console.log(_order);
         }
     });
 
@@ -103,7 +113,7 @@ function getProgramClass(className) {
 //   Иначе установит на последний элемент фокус.
 
 function outOperation(operation, focusIndex) {
-
+  console.log(status);
   switch (status) {
     case 'run':
       ipcRenderer.send('setOrderRun', _order.id);

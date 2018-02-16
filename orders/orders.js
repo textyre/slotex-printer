@@ -1,5 +1,6 @@
 const ipcRenderer = require('electron').ipcRenderer;
 const remote = require('electron').remote;
+const ObjectID = require('mongodb').ObjectID;
 
 let _orders = [];
 
@@ -19,7 +20,7 @@ ipcRenderer.send('getUserName', null);
 ipcRenderer.on('getOrders', function (event, orders, positionAt, positionTo, flag) {
     loadContent = flag;
     _orders     = orders;
-
+    document.getElementById('main').innerHTML = '';
     outOrderOnPage(orders, positionAt, positionTo);
 });
 
@@ -155,10 +156,10 @@ function outOrderOnPage(arr, positionAt, positionTo, mode) {
   let orderStatus;
 
   for (let i = positionAt; i < positionTo; i++) {
-    if (document.getElementById(arr[i].id) === null) {
+    // if (document.getElementById(arr[i].id) === null) {
       orderStatus = getClassTemplate(arr[i].status);
       document.getElementById('main').innerHTML += getTemplate(arr[i], orderStatus, mode);
-    }
+    // }
   }
 
   setEventListener(main);
