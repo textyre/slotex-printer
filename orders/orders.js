@@ -22,7 +22,6 @@ ipcRenderer.send('getUserName', null);
 ipcRenderer.on('getOrders', function (event, orders, positionAt, positionTo, flag) {
     loadContent = flag;
     _orders     = orders;
-    document.getElementById('main').innerHTML = '';
     outOrderOnPage(orders, positionAt, positionTo);
 });
 
@@ -142,9 +141,12 @@ function getTemplateDeleteOrder(id) {
 }
 
 function accessDeleteOrder() {
-  document.getElementById(deleteOrderID).remove();
+
+  let result = ipcRenderer.sendSync('deleteOrder', deleteOrderID);
+  if (result) {
+    document.getElementById(deleteOrderID).remove();
+  }
   document.getElementById('block_deleteOrder').remove();
-  ipcRenderer.send('deleteOrder', deleteOrderID);
 }
 
 function cancelDeleteOrder() {

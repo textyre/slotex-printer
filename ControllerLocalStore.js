@@ -41,6 +41,14 @@ module.exports = class ControllerLocalStore {
       );
     }
 
+    this.addClientInLocalStore = function (client) {
+      db.ordersData.update({ 'id': 'clients' },
+                           { $push: { 'clients': client } },
+                           (err, result) => {
+                             if (err) return false;
+                           });
+    }
+
     this.getClientsFromLocalStore = function (callback) {
       db.ordersData.find({ 'id': 'clients' }, function (err, clientsObject) {
           _dataReclaimer(err, clientsObject, callback);
@@ -56,6 +64,14 @@ module.exports = class ControllerLocalStore {
                              console.log(succesfull_update_decors);
                            }
       );
+    }
+
+    this.addDecorInLocalStore = function (decor) {
+      db.ordersData.update({ 'id': 'decors' },
+                           { $push: { 'decors': decor } },
+                           (err, result) => {
+                             if (err) return false;
+                           });
     }
 
     this.getDecorsFromLocalStore = function (callback) {

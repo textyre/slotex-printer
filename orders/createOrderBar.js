@@ -16,11 +16,11 @@ window.addEventListener('click', function () {
 });
 
 ipcRenderer.on('getClients', function (event, objectClients) {
-    clients = objectClients.clients;
+    clients = objectClients;
 });
 
 ipcRenderer.on('getDecors', function (event, objectDecors) {
-    decors = objectDecors.decors;
+    decors = objectDecors;
 });
 
 window.addEventListener('load', function () {
@@ -31,28 +31,28 @@ window.addEventListener('load', function () {
     let btnCreateOrder = document.getElementById('btnCreateOrder');
 
     inputClient.addEventListener('focus', function () {
-        if (remote.getGlobal('ordersData')[0].clients) {
+        if (remote.getGlobal('ordersData')[0].length) {
           nameInput   = 'clients';
           eventTarget = event.target;
 
           document.getElementById("list").innerHTML = '';
 
           showList();
-          outClientsDecorsInList(remote.getGlobal('ordersData')[0].clients);
+          outClientsDecorsInList(remote.getGlobal('ordersData')[0]);
         } else {
           closeList();
         }
     });
 
     inputDecor.addEventListener('focus', function() {
-        if (remote.getGlobal('ordersData')[1].decors.length) {
+        if (remote.getGlobal('ordersData')[1].length) {
           nameInput = 'decors';
           eventTarget = event.target;
 
           document.getElementById("list").innerHTML = '';
 
           showList();
-          outClientsDecorsInList(remote.getGlobal('ordersData')[1].decors);
+          outClientsDecorsInList(remote.getGlobal('ordersData')[1]);
         } else {
           closeList();
         }
@@ -103,8 +103,9 @@ function deleteClientsDecors () {
       indexItem = i;
     }
   }
-  ipcRenderer.send('deleteClientOrder', nameInput, indexItem);
-  event.target.parentNode.remove();
+  let result = ipcRenderer.sendSync('deleteClientOrder', nameInput, indexItem);
+  console.log(result);
+  if (result) event.target.parentNode.remove();
 }
 
 function addTitleList() {
