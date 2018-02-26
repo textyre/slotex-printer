@@ -1,15 +1,16 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const fs                              = require('fs');
-var mongoConnection                   = require('./mongoConnect');
-var ControllerLocalStore              = require('./ControllerLocalStore');
-var dateModule                        = require('./date');
+
+var mongoConnection                     = require('./mongoConnect');
+const ControllerLocalStore              = require('./ControllerLocalStore');
+const ControllerRemoteStore             = require('./ControllerRemoteStore');
+const ModelUsers                        = require('./ModelUsers');
+const ModelClientsDecors                = require('./ModelClientsDecors');
+const ModelOrders                       = require('./ModelOrders');
 
 let win; //Окно
 
 var orders            = []; //Хранятся заказы из БД
 var localOrders       = [];
-global.ordersData = []; //Хранятся клиенты и декоры
-global.moveBetweenDisplay = false;
 
 var foundOrders   = []; //Хранятся найденны заказы
 var users         = []; //Список юзеров
@@ -32,7 +33,12 @@ var historyOperations  = [];
 
 var sampleDate = '';
 
-let controllerLocalStore = new ControllerLocalStore(app);
+const modelUsers          = new ModelUsers();
+const modelClientsDecors  = new ModelClientsDecors();
+const modelOrders         = new ModelOrders();
+
+let controllerLocalStore  = new ControllerLocalStore(app, modelUsers);
+let controllerRemoteStore = new ControllerRemoteStore(modelUsers, modelClientsDecors, modelOrders);
 
 //startOrdersPage: регулирует запуск страницы, при запуске true, после загрузки заказов false
 
@@ -73,32 +79,38 @@ ipcMain.on('openWindow', function (event, arg) {
 
     switch (arg[0]) {
       case 'enterWindow':
-        if (users.length === 0) {
-          firstConnectionToDb(event);
+        let lengthUsers = modelUsers.getAllUsers().length;
+
+        if (lengthUsers === 0) {
+          controllerRemoteStore.connectRemote((status) => {
+              if (status) {
+                  controllerRemoteStore.getAllUsers((status) => {
+                      event.sender.send('getUsers', modelUsers.getAllUsers());
+                  });
+                  controllerLocalStore.updateUsersInLocalStore(modelUsers.getAllUsers());
+              } else {
+                  controllerLocalStore.getUsersFromLocalStore(() => {
+                      event.sender.send('getUsers', modelUsers.getAllUsers());
+                  });
+              }
+          });
         } else {
-          event.sender.send('getUsers', users);
+          event.sender.send('getUsers', modelUsers.getAllUsers());
         }
       break;
 
       case 'ordersWindow':
-        if (userName == null &&
-            arg[1]   != null &&
-            arg[1]   != undefined) userName = arg[1];
-
         win.loadURL(`file://${__dirname}/orders/orders.html`);
-        event.sender.send('result', 'open');
-
-        if (arg[1] === 'panelWindow') moveBetweenDisplay = true;
       break;
 
       case 'panelWindow':
-        orderID = arg[1];
+        modelOrders.setOrderID(arg[1]);
         win.loadURL(`file://${__dirname}/main/main.html`);
         event.sender.send('result', 'open');
       break;
 
       case 'statisticsWindow':
-        orderID = arg[1];
+        modelOrders.setOrderID(arg[1]);
         win.loadURL(`file://${__dirname}/statistics/statistics.html`);
         event.sender.send('result', 'open');
       break;
@@ -113,22 +125,9 @@ ipcMain.on('openWindow', function (event, arg) {
     }
 });
 
-function firstConnectionToDb(event) {
-  mongoConnection.connect((status) => {
-      if (!status) {
-        controllerLocalStore.getUsersFromLocalStore((localUsers) => {
-            users = localUsers;
-            event.sender.send('getUsers', users);
-        });
-      } else {
-        mongoConnection.mongo.users.find().toArray((err, usersObject) => {
-            if (err) return false
-            users = usersObject[0].users;
-            controllerLocalStore.updateUsersInLocalStore(users);
-            event.sender.send('getUsers', users);
-        });
-      }
-  });
+function sendToView_ClientsAndDecors(event) {
+  event.sender.send('getClients',  modelClientsDecors.getAllClients());
+  event.sender.send('getDecors', modelClientsDecors.getAllDecors());
 }
 
 //Обработка загрузки окон
@@ -140,13 +139,31 @@ ipcMain.on('windowLoad', function (event, arg) {
     case 'ordersWindow':
       foundOrders.length = [];
 
-      if (ordersData.length == 0) {
-        getData(event);
-      } else {
-        event.sender.send('getClients', ordersData[0]);
-        event.sender.send('getDecors', ordersData[1]);
-      }
+      let lengthClientsAndDecors = modelClientsDecors.getAllClientsAndDecors()[0].length ||
+                                   modelClientsDecors.getAllClientsAndDecors()[1].length;
 
+      if (lengthClientsAndDecors === 0) {
+        controllerRemoteStore.getAllClientsAndDecors((clients_decors) => {
+            if (clients_decors !== false) {
+                modelClientsDecors.addClientsAndDecors(clients_decors);
+
+                controllerLocalStore.updateClientsInLocalStore(clients_decors[0].clients);
+                controllerLocalStore.updateDecorsInLocalStore(clients_decors[1].decors);
+
+                sendToView_ClientsAndDecors(event);
+            } else {
+                controllerLocalStore.getClientsFromLocalStore((localClients) => {
+                    event.sender.send('getClients', localClients[0].clients);
+                });
+
+                controllerLocalStore.getDecorsFromLocalStore((localDecors) => {
+                    event.sender.send('getDecors', localOrders[1].decors);
+                });
+            }
+        });
+      } else {
+        sendToView_ClientsAndDecors(event);
+      }
     break;
 
     case 'panelWindow':
@@ -197,7 +214,6 @@ ipcMain.on('windowLoad', function (event, arg) {
 
       for (let i = 0; i < localOrders.length; i++) {
         if (localOrders[i].id === orderID) {
-          console.log('fffff');
           getOperationsHistory(event, orderID);
           event.sender.send('getOrder', localOrders[i], userName);
           return true;
@@ -236,13 +252,13 @@ ipcMain.on('online-status-changed', (event, status) => {
     statusNetwork = status;
     if (status) {
       if (addLocalOrders || orders.length === 0) {
-        console.log('Был добавлен локально заказ и мы его заливаем в монгу');
+        console.log('Был добавлен заказ(ы), добавляем в MongoDB');
         mergeLocalAndRemoteOrdersCollection();
         mergeLocalAndRemoteOrdersHistoryCollection();
       }
 
       if (orders.length === 0 && startOrdersPage) {
-        console.log('Сеть есть и загружаем заказы из монги');
+        console.log('Сеть есть и загружаем заказы из монги, страница загружена первый раз');
         getOrders(event);
       } else if (orders.length > 0 && startOrdersPage) {
         console.log('Сеть есть: Заказы есть в массиве и страница была перезагружена');
@@ -282,30 +298,30 @@ function concatLocalAndRemoteOrders(event) {
   }, 1000);
 }
 
+//Получаем заказы из NeDB
+//Проверка на кол-во, добавляем в MongoDB, удаляем из NeDB
+//Устанавливаем флаг addLocalOrders = false,
+//чтобы больше не мержить до событие(добавление в NeDB)
 function mergeLocalAndRemoteOrdersCollection() {
   controllerLocalStore.getAllOrdersFromLocalStore((_localOrders) => {
-     addLocalOrders = false;
      if (_localOrders.length > 0) {
-       insertLocalOrdersToRemoteDb(_localOrders);
-       controllerLocalStore.removeAllOrdersFromLocalStore((result) => {
-          return true;
-       });
-     } else {
-       return true;
-     }
+           controllerRemoteStore.insertLocalOrders(_localOrders, (status) => console.log(status));
+           controllerLocalStore.removeAllOrdersFromLocalStore((status) => {
+               addLocalOrders = false;
+               console.log(status);
+           });
+     } else return true;
   });
 }
 
+//Получаем истории заказов из NeDB
+//Проверка на кол-во, добавляем в MongoDB, удаляем из NeDB
 function mergeLocalAndRemoteOrdersHistoryCollection() {
-  controllerLocalStore.getAll_HistoryOrdersFromLocalStore((_localHistory) => {
-      if (_localHistory !== false && _localHistory.length > 0) {
-        insertLocalHistoryToRemoteDb(_localHistory);
-        controllerLocalStore.removeAll_HistoryOrderFromLocalStore((result) => {
-           return true;
-        });
-      } else {
-        return true;
-      }
+  controllerLocalStore.getAllHistoryOrders((_localHistory) => {
+      if (_localHistory.length > 0) {
+        controllerRemoteStore.insertLocalHistoryOrders(_localHistory, (status) => console.log(status));
+        controllerLocalStore.removeAllHistoryOrders((result) => console.log(result););
+      } else return true;
   });
 }
 
@@ -345,153 +361,38 @@ ipcMain.on('createOrder', function (event, order) {
           });
         }
     });
-    searchClient(order.client);
-    searchDecor(order.decor);
+
+    let resultFoundClient = modelClientsDecors.searchClient(order.client);
+    let resultFoundDecor  = modelClientsDecors.searchDecor(order.decor);
+
+    if (resultFoundClient) {
+      controllerRemoteStore.addCLientInDb((status) => {
+           if (!status) controllerLocalStore.addClientInLocalStore(order.client);
+           else console.log('Клиент успешно добавлен в удаленную БД');
+           event.sender.send('getClients', modelClientsDecors.getClients());
+      });
+    }
+
+    if (resultFoundDecor) {
+      controllerRemoteStore.addDecorInDb((status) => {
+            if (!status) controllerLocalStore.addDecorInLocalStore(order.decor);
+            else console.log('Декор успешно добавлен в удаленную БД');
+            event.sender.send('getDecors', modelClientsDecors.getDecors());
+      });
+    }
 });
 
-function insertLocalOrdersToRemoteDb(_localOrders) {
-  checkStatusNetwork((status) => {
-     if (status) {
-       mongoConnection.mongo.orders.createIndex({ "id": 1 }, { unique: true });
-       for (let i = 0; i < _localOrders.length; i++) {
-         console.log('Обновление заказа');
-         console.log(_localOrders[i]);
-         mongoConnection.mongo.orders.update(
-           { 'id': _localOrders[i].id },
-           {
-              'beginDate': _localOrders[i].beginDate,
-              'beginTime': _localOrders[i].beginTime,
-                 'client': _localOrders[i].client,
-                  'count': _localOrders[i].count,
-             'dateCreate': _localOrders[i].dateCreate,
-                  'decor': _localOrders[i].decor,
-                'endDate': _localOrders[i].endDate,
-                'endTime': _localOrders[i].endTime,
-                     'id': _localOrders[i].id,
-                   'info': _localOrders[i].info,
-          'necessaryTime': _localOrders[i].necessaryTime,
-                 'people': _localOrders[i].people,
-                 'status': _localOrders[i].status,
-          'unhelpfulTime': _localOrders[i].unhelpfulTime,
-             'usefulTime': _localOrders[i].usefulTime,
-            'userCreater': _localOrders[i].userCreater,
-                 'weight': _localOrders[i].weight
-           },
-           { upsert: true },
-           (err, docInserted) => {
-             if (err) console.log(err);;
-           });
-       }
-     } else {
-       return false;
-     }
-  });
-}
-
-function insertLocalHistoryToRemoteDb(_localHistory) {
-  checkStatusNetwork((status) => {
-      if (status) {
-        mongoConnection.mongo.ordersHistory.createIndex({ 'id': 1 }, { unique: true });
-        for (let i = 0; i < _localHistory.length; i++) {
-          console.log('Обновление истории операций');
-          console.log(_localHistory[i]);
-          mongoConnection.mongo.ordersHistory.update( { 'id': _localHistory[i].id }, { 'id': _localHistory[i].id, 'history': _localHistory[i].history }, { upsert: true }, (err, docsUpdated) => {
-            if (err) console.log(err);;
-          });
-        }
-      } else {
-        console.log('Error: История операций из локального хранлища в удаленное не перенасена');
-      }
-  });
-}
-
-
-function searchClient(client) {
-  for (let i = 0; i < ordersData[0].length; i++) {
-    if (ordersData[0][i] === client) {
-      return true;
-    }
-  }
-  console.log('Добавляем клиента в БД');
-  addCLientInDb(client);
-}
-
-function searchDecor(decor) {
-  for (let i = 0; i < ordersData[1].length; i++) {
-    if (ordersData[1][i] === decor) {
-      return true;
-    }
-  }
-  console.log('Добавляем декор в БД');
-  addOrderInDb(decor);
-}
-
-function addCLientInDb(client) {
-  checkStatusNetwork((status) => {
-       if (status) {
-         mongoConnection.mongo.ordersData.update(
-           { 'id': 'clients' },
-           { $push: { 'clients': client } },
-           (err, result) => {
-             if (err) return false;
-             console.log(result);
-           });
-       } else {
-         console.log('Добавляем клиента в локал');
-       }
-       controllerLocalStore.addClientInLocalStore(client);
-       ordersData[0].push(client);
-  });
-}
-
-function addOrderInDb(decor) {
-  checkStatusNetwork((status) => {
-      if (status) {
-        mongoConnection.mongo.ordersData.update(
-          { 'id': 'decors' },
-          { $push: { 'decors': decor } },
-          (err, result) => {
-            if (err) return false;
-            console.log(result);
-
-          });
-      } else {
-        console.log('Добавляем декор в локал');
-      }
-      controllerLocalStore.addDecorInLocalStore(decor);
-      ordersData[1].push(decor);
-  });
-}
 
 ipcMain.on('deleteClientOrder', function (event, nameArray, indexItem) {
-    checkStatusNetwork((status) => {
-        if (status) {
-          let updateObject;
+    let updateObject;
 
-          if (nameArray === 'clients') {
-            ordersData[0].splice(indexItem, 1);
-            updateObject = {
-              'id': 'clients',
-              'clients': ordersData[0]
-            }
-          } else if (nameArray === 'decors') {
-            ordersData[1].splice(indexItem, 1);
-            updateObject = {
-              'id': 'decors',
-              'decors': ordersData[1]
-            }
-          }
+    if (nameArray === 'clients')     updateObject = modelClientsDecors.deleteClient(indexItem);
+    else if (nameArray === 'decors') updateObject = modelClientsDecors.deleteDecor(indexItem);
 
-          mongoConnection.mongo.ordersData.update({ 'id': nameArray }, updateObject,
-          (err, docUpdated) => {
-              if (err) event.returnValue = false;
-              console.log(docUpdated);
-              event.returnValue = true;
-          });
-        } else {
-          console.log('Нет сети');
-          event.returnValue = false;
-        }
+    console.log(updateObject);
+    controllerRemoteStore.updateOrdersData(nameArray, updateObject, (status) => {
+        if (status) event.returnValue = true;
+        event.returnValue = false;
     });
 });
 
@@ -502,25 +403,20 @@ ipcMain.on('loadOrder', function (event, arg) {
 
 
 //Запрос из usersBar.js, выполняется при смене имени
-ipcMain.on('setUserName', function (event, argUserName) {
-    userName = argUserName;
-    event.returnValue = true;
-})
-
+ipcMain.on('setUserName', function (event, userName) {
+    modelUsers.setUserName(userName);
+});
 
 //Запрос из orders.js
 //Отдает ему пользователя
-
 ipcMain.on('getUserName', function (event, arg) {
-    event.sender.send('setUserName', userName);
+    event.sender.send('setUserName', modelUsers.getUserName());
 });
-
 
 //Запрос из sideBar.js
 //Возвращает список юзеров для выбора
-
 ipcMain.on('getUsers', function (event, arg) {
-    event.sender.send('setUsers', users);
+    event.sender.send('setUsers', modelUsers.getAllUsers());
 });
 
 ipcMain.on('deleteOrder', function (event, id) {
@@ -580,25 +476,14 @@ function deleteHistoryOrderInDb(id) {
 //Устанавливаем positionAt = positionTo
 
 function getOrders(event) {
-    checkStatusNetwork((status) => {
-        if (status) {
-          let cursor = mongoConnection.mongo.orders.find().skip(positionTo).limit(15).sort({ 'dateCreate': -1 });
-          cursor.forEach(function (doc) {
-            orders.push(doc);
-            if (doc.status === 'run') {
-              orderRun = doc.id;
-              getOperationsHistory(undefined, orderRun);
-            }
-            positionTo++;
-          }, function (err) {
-              if (err) return false;
-              if (positionTo == positionAt) event.sender.send('getOrders', orders, positionAt, positionTo, true);
-              else                          event.sender.send('getOrders', orders, positionAt, positionTo, false);
+    controllerRemoteStore.getAllOrders(modelOrders.getPositionTo(), (orders) => {
+        if (positionTo === modelOrders.getPositionAt())
+          event.sender.send('getOrders', orders, positionAt, positionTo, true);
+        else
+          event.sender.send('getOrders', orders, positionAt, positionTo, false);
 
-              positionAt = positionTo;
-              moreDownloadOrderds = false;
-          });
-        }
+        modelOrders.setPositionAt(positionTo);
+        moreDownloadOrderds = false;
     });
 }
 
@@ -662,41 +547,6 @@ function getOperationsHistory(event, id) {
               }
             }
         });
-      }
-  });
-}
-
-
-//Подключаем к БД и загружаем клиентов с декорами, заносим в массив
-function getData(event) {
-  checkStatusNetwork((status) => {
-      if (status) {
-        mongoConnection.mongo.ordersData.find().toArray((err, remoteOrdersData) => {
-            if (err) console.log('error');
-            ordersData.push(remoteOrdersData[0].clients);
-            ordersData.push(remoteOrdersData[1].decors);
-
-            controllerLocalStore.updateClientsInLocalStore(remoteOrdersData[0].clients);
-            controllerLocalStore.updateDecorsInLocalStore(remoteOrdersData[1].decors);
-
-            event.sender.send('getClients', ordersData[0]);
-            event.sender.send('getDecors', ordersData[1]);
-        });
-      } else {
-        controllerLocalStore.getClientsFromLocalStore((localClients) => {
-            ordersData.push(localClients[0].clients);
-            console.log(ordersData[0]);
-
-            event.sender.send('getClients', ordersData[0]);
-        });
-
-        controllerLocalStore.getDecorsFromLocalStore((localDecors) => {
-            ordersData.push(localDecors[0].decors);
-            console.log(ordersData[1]);
-
-            event.sender.send('getDecors', ordersData[1]);
-        });
-
       }
   });
 }

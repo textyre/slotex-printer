@@ -15,12 +15,13 @@ window.addEventListener('click', function () {
     }
 });
 
-ipcRenderer.on('getClients', function (event, objectClients) {
-    clients = objectClients;
+ipcRenderer.on('getClients', function (event, _clients) {
+    console.log(_clients);
+    clients = _clients;
 });
 
-ipcRenderer.on('getDecors', function (event, objectDecors) {
-    decors = objectDecors;
+ipcRenderer.on('getDecors', function (event, _decors) {
+    decors = _decors;
 });
 
 window.addEventListener('load', function () {
@@ -31,28 +32,29 @@ window.addEventListener('load', function () {
     let btnCreateOrder = document.getElementById('btnCreateOrder');
 
     inputClient.addEventListener('focus', function () {
-        if (remote.getGlobal('ordersData')[0].length) {
+        console.log(clients);
+        if (clients.length) {
           nameInput   = 'clients';
           eventTarget = event.target;
 
           document.getElementById("list").innerHTML = '';
 
           showList();
-          outClientsDecorsInList(remote.getGlobal('ordersData')[0]);
+          outClientsDecorsInList(clients);
         } else {
           closeList();
         }
     });
 
     inputDecor.addEventListener('focus', function() {
-        if (remote.getGlobal('ordersData')[1].length) {
+        if (decors.length) {
           nameInput = 'decors';
           eventTarget = event.target;
 
           document.getElementById("list").innerHTML = '';
 
           showList();
-          outClientsDecorsInList(remote.getGlobal('ordersData')[1]);
+          outClientsDecorsInList(decors);
         } else {
           closeList();
         }
@@ -104,7 +106,6 @@ function deleteClientsDecors () {
     }
   }
   let result = ipcRenderer.sendSync('deleteClientOrder', nameInput, indexItem);
-  console.log(result);
   if (result) event.target.parentNode.remove();
 }
 

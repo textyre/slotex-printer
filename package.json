@@ -2,9 +2,9 @@
   "name": "slotexIS",
   "version": "0.1.0",
   "productName": "Printer",
-  "main": "main.js",
+  "main": "Controller.js",
   "scripts": {
-    "start": "electron main.js",
+    "start": "electron Controller.js",
     "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/mac/icon.icns --prune=true --out=release-builds",
     "package-win": "electron-packager ./  --platform=win32 --arch=ia32,x64",
     "package-linux": "electron-packager . slotexIS --overwrite --asar=true --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds"

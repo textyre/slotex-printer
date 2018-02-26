@@ -20,7 +20,7 @@ window.addEventListener('load', function () {
     btnChooseUser.addEventListener('click', function () {
         document.getElementById('nameUser').innerHTML = userName;
         closeUserBar();
-        return ipcRenderer.sendSync('setUserName', userName);
+        ipcRenderer.send('setUserName', userName);
     });
 
     btnCancelChooseUsers.addEventListener('click', function () {

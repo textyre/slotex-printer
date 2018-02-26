@@ -1,5 +1,4 @@
 const ipcRenderer = require('electron').ipcRenderer;
-const remote = require('electron').remote;
 const ObjectID = require('mongodb').ObjectID;
 
 let _orders = [];
@@ -14,7 +13,7 @@ let visibleFoundOrders = false;
 
 let statusNetwork = false;
 
-ipcRenderer.send("windowLoad", "ordersWindow");
+ipcRenderer.send('windowLoad', 'ordersWindow');
 ipcRenderer.send('startOrdersPage', true);
 ipcRenderer.send('moreDownloadOrderds', true);
 ipcRenderer.send('getUserName', null);

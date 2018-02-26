@@ -2,7 +2,9 @@ const Datastore = require('nedb');
 const path      = require('path');
 
 module.exports = class ControllerLocalStore {
-  constructor(app) {
+  constructor(app, modelUsers) {
+    let _modelUsers = modelUsers;
+
     const succesfull_update_users   = 'Коллекция Users в локальном хранилище успено обновлена';
     const succesfull_update_clients = 'Коллекция ordersData (док. id: clients) в локальном хранилище успено обновлена';
     const succesfull_update_decors = 'Коллекция ordersData (док. id: decors) в локальном хранилище успено обновлена';
@@ -25,8 +27,8 @@ module.exports = class ControllerLocalStore {
     }
 
     this.getUsersFromLocalStore = function (callback) {
-      db.users.find({}, function (err, usersObject) {
-          _dataReclaimer(err, usersObject[0].users, callback);
+      db.users.find({}, function (err, users) {
+          _modelUsers.addUsers(users[0].users);
       });
     }
 
@@ -119,13 +121,13 @@ module.exports = class ControllerLocalStore {
       });
     }
 
-    this.getAll_HistoryOrdersFromLocalStore = function (callback) {
+    this.getAllHistoryOrders = function (callback) {
       db.ordersHistory.find({}, function (err, history) {
           _dataReclaimer(err, history, callback);
       });
     }
 
-    this.removeAll_HistoryOrderFromLocalStore = function (callback) {
+    this.removeAllHistoryOrders = function (callback) {
       db.ordersHistory.remove({}, { multi: true }, function (err, docsRemoved) {
           callback(docsRemoved);
       });

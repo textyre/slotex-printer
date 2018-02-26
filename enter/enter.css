@@ -2,9 +2,15 @@
     font-family: Ubuntu; /* Гарнитура шрифта */
     src: url(../resources/1.ttf); /* Путь к файлу со шрифтом */
 }
+
 body
 {
   background-color: #2EA8EF;
+}
+
+*
+{
+  margin: 0;
 }
 
 .block_auth

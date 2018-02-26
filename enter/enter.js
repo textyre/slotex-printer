@@ -11,7 +11,7 @@ ipcRenderer.on('getUsers', function (event, users) {
     console.log(users);
     console.log('fff');
     for (let i = 0; i < users.length; i++) {
-      list.innerHTML += '<a>' + users[i] + '</a>';
+      list.innerHTML += '<a class="listItem" onclick="setUserName()">' + users[i] + '</a>';
     }
 });
 
@@ -29,9 +29,9 @@ window.addEventListener('click', function () {
 window.onload = function() {
   console.log('READY');
   // setTimeout(getUsers, 1100);
-  let usersBlock = document.getElementById('users');
-  let inputFIO   = document.getElementById('inputFIO');
-  let list       = document.getElementById('list');
+  const usersBlock = document.getElementById('users');
+  const inputFIO   = document.getElementById('inputFIO');
+  const list       = document.getElementById('list');
 
   inputFIO.addEventListener('focus', function (event) {
       showDropDown(event.target);
@@ -52,21 +52,16 @@ window.onload = function() {
       }
   });
 
-
-
   const btnclick = document.getElementById('enterBttn');
-  btnclick.addEventListener('click', function () {
-      var arg = 'ordersWindow';
-      if (inputFIO.value === null || inputFIO.value === '') {
-        return false;
-      } else {
-        ipcRenderer.send("openWindow", [arg, inputFIO.value]);
-      }
-  });
+        btnclick.addEventListener('click', function () {
+            var arg = 'ordersWindow';
+            if (inputFIO.value === null || inputFIO.value === '') return false;
+            else ipcRenderer.send('openWindow', [arg, inputFIO.value]);
+        });
+}
 
-  // usersBlock.addEventListener('click', function () {
-  //     userName = event.target.textContent;
-  // });
+function setUserName() {
+  ipcRenderer.send('setUserName', event.target.textContent)
 }
 
 ipcRenderer.on('result', function(event, param) {
