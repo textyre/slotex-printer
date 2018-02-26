@@ -26,10 +26,11 @@ window.addEventListener('load', function () {
                   }, 700);
 
             } else {
+              console.log('fff');
               removeErrorNotFoundOnDisplay();
-              setTimeout(removeFoundOrders, 700);
+              removeFoundOrders();
+              // showDownloadOrders();
               showButtonDowloadOrders();
-              setTimeout(showDownloadOrders, 800);
             }
         } else {
           return false;

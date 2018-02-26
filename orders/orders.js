@@ -305,7 +305,6 @@ function showBlock_emptyNetwork() {
 }
 
 function hideBlock_emptyNetwork() {
-  console.log('алейкум');
   document.getElementById('emptyNetwork').style.display = 'none';
   document.getElementById('main').style.paddingTop = '95px';
   return true;
