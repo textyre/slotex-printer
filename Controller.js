@@ -9,27 +9,12 @@ const ModelOrders                       = require('./ModelOrders');
 
 let win; //Окно
 
-var orders            = []; //Хранятся заказы из БД
-var localOrders       = [];
-
-var foundOrders   = []; //Хранятся найденны заказы
-var users         = []; //Список юзеров
-var userName      = null; //Имя текущего юзера
-
-var orderID       = null; //ID заказа
-var orderRun      = null; //Запущенный заказ
-
-var positionAt    = 0; //Позиция, с которой выводим вновь загруженные заказы
-var positionTo    = 0; //Позиция, по которую выводим вновь загруженные заказы
-
 var BlockIntervalID = null; //Для интервалов
 let focusIndex      = null; //Для возврата фокуса
 
 var beginDateOperation = null; //Начальное время запуск операции
 var lastTimeOperation  = 0;
-
 var nameOperation      = null;
-var historyOperations  = [];
 
 var sampleDate = '';
 
@@ -48,27 +33,57 @@ var startOrdersPage     = false;
 var moreDownloadOrderds = false;
 var addLocalOrders      = true;
 var statusNetwork       = false;
-var workArrayOrders     = [];
 
 //При запуске приложения получаем юзеров или ошибку
 app.on('ready', () => {
-    win = new BrowserWindow({
-      width:  1280,
-      height: 720,
-      minWidth: 1280,
-      minHeight: 720,
-      webPreferences: {
-          devTools: true
-        }
+    createWindow();
+    // let array1 = [{ 'id': 1, 'name': 'petya' }, { 'id': 2, 'name': 'vasya' }, { 'id': 3, 'name': 'vanya' }];
+    // let array2 = array1[1];
+    // array1.unshift({ 'id': 0, 'name': 'admin' });
+    // // array2[0].name = 'root';
+    // console.log(array1);
+    // array1.push({ 'id': 4, 'name': 'database' });
+    // console.log(array2.name = 'root');
+    // console.log(array1);
+
+});
+
+app.on('activate', () => {
+    if (win === null) {
+      createWindow()
+    }
+});
+
+function createWindow() {
+  win = new BrowserWindow({
+    width:  1280,
+    height: 720,
+    minWidth: 1280,
+    minHeight: 720,
+    webPreferences: {
+        devTools: true
+      }
+  });
+  win.loadURL(`file://${__dirname}/enter/enter.html`);
+
+  win.on('closed', () => {
+      win = null;
+  });
+}
+
+app.on('window-all-closed', (event) => {
+    // event.preventDefault();
+    stopOperation((status) => {
+        console.log(status);
+        focusIndex = null;
     });
-    win.loadURL(`file://${__dirname}/enter/enter.html`);
+
+    if (process.platform !== 'darwin') {
+      mongoConnection.closeConnect();
+      app.quit();
+    }
 });
 
-
-app.on('before-quit', (event) => {
-    stopOperation(workArrayOrders);
-    mongoConnection.closeConnect();
-});
 
 //Обработка открытия окон
 //Окно входа - если юзеры загружены, то отдаеть, иначе загрузить
@@ -86,11 +101,12 @@ ipcMain.on('openWindow', function (event, arg) {
               if (status) {
                   controllerRemoteStore.getAllUsers((status) => {
                       event.sender.send('getUsers', modelUsers.getAllUsers());
+                      controllerLocalStore.updateUsersInLocalStore(modelUsers.getAllUsers());
                   });
-                  controllerLocalStore.updateUsersInLocalStore(modelUsers.getAllUsers());
               } else {
-                  controllerLocalStore.getUsersFromLocalStore(() => {
-                      event.sender.send('getUsers', modelUsers.getAllUsers());
+                  controllerLocalStore.getUsersFromLocalStore((status) => {
+                      if (status) event.sender.send('getUsers', modelUsers.getAllUsers());
+                      else console.log('01: Нет доступа по сети и нет доступа к диску');
                   });
               }
           });
@@ -130,14 +146,14 @@ function sendToView_ClientsAndDecors(event) {
   event.sender.send('getDecors', modelClientsDecors.getAllDecors());
 }
 
-//Обработка загрузки окон
-//Окно заказов - отдать заказы, клиентов и декоры, если есть, иначе загрузить
-//Окно панели - getOrder отсылает заказ в head.js, getOperations отсылает заказ в operations.js
-
 ipcMain.on('windowLoad', function (event, arg) {
+  let id       = null;
+  let order    = null;
+  let userName = null;
+
   switch (arg) {
     case 'ordersWindow':
-      foundOrders.length = [];
+      modelOrders.newFoundOrders();
 
       let lengthClientsAndDecors = modelClientsDecors.getAllClientsAndDecors()[0].length ||
                                    modelClientsDecors.getAllClientsAndDecors()[1].length;
@@ -152,12 +168,17 @@ ipcMain.on('windowLoad', function (event, arg) {
 
                 sendToView_ClientsAndDecors(event);
             } else {
+                clients_decors = [];
                 controllerLocalStore.getClientsFromLocalStore((localClients) => {
+                    clients_decors.push(localClients[0]);
                     event.sender.send('getClients', localClients[0].clients);
                 });
 
                 controllerLocalStore.getDecorsFromLocalStore((localDecors) => {
-                    event.sender.send('getDecors', localOrders[1].decors);
+                    clients_decors.push(localDecors[0]);
+                    event.sender.send('getDecors', localDecors[0].decors);
+
+                    modelClientsDecors.addClientsAndDecors(clients_decors);
                 });
             }
         });
@@ -167,62 +188,26 @@ ipcMain.on('windowLoad', function (event, arg) {
     break;
 
     case 'panelWindow':
-      for (let i = 0; i < orders.length; i++) {
-        if (orders[i].id === orderID) {
-          event.sender.send('getOrder', orders[i], userName);
-          event.sender.send('getOperations', orders[i], focusIndex);
-          workArrayOrders = orders;
-          return true;
-        }
-      }
-
-      for (let i = 0; i < foundOrders.length; i++) {
-        if (foundOrders[i].id === orderID) {
-          event.sender.send('getOrder', foundOrders[i], userName);
-          event.sender.send('getOperations', foundOrders[i], focusIndex);
-          workArrayOrders = foundOrders;
-          return true;
-        }
-      }
-
-      for (let i = 0; i < localOrders.length; i++) {
-        if (localOrders[i].id === orderID) {
-          event.sender.send('getOrder', localOrders[i], userName);
-          event.sender.send('getOperations', localOrders[i], focusIndex);
-          workArrayOrders = localOrders;
-          return true;
-        }
-      }
+      id       = modelOrders.getOrderID();
+                 modelOrders.searchOrder(id);
+      order    = modelOrders.getCurrentOrder();
+      userName = modelUsers.getUserName();
+      event.sender.send('getOrder', order, userName);
+      event.sender.send('getOperations', order, focusIndex);
     break;
 
     case 'statisticsWindow':
-      for (let i = 0; i < orders.length; i++) {
-        if (orders[i].id === orderID) {
-          getOperationsHistory(event, orderID);
-          event.sender.send('getOrder', orders[i], userName);
-          return true;
-        }
-      }
-
-      for (let i = 0; i < foundOrders.length; i++) {
-        if (foundOrders[i].id === orderID) {
-          getOperationsHistory(event, orderID);
-          event.sender.send('getOrder', foundOrders[i], userName);
-          return true;
-        }
-      }
-
-      for (let i = 0; i < localOrders.length; i++) {
-        if (localOrders[i].id === orderID) {
-          getOperationsHistory(event, orderID);
-          event.sender.send('getOrder', localOrders[i], userName);
-          return true;
-        }
-      }
+      id       = modelOrders.getOrderID();
+                 modelOrders.searchOrder(id);
+      order    = modelOrders.getCurrentOrder();
+      userName = modelUsers.getUserName();
+      getOperationsHistory(event, id);
+      event.sender.send('getOrder', order, userName);
     break;
 
     case 'sumstatistics':
-      event.sender.send('getSampleOrders', foundOrders);
+      userName = modelUsers.getUserName();
+      event.sender.send('getSampleOrders', modelOrders.getWorkaArrayOrders());
       event.sender.send('getUserNameAndRangeDate', userName, sampleDate);
     break;
 
@@ -238,7 +223,7 @@ ipcMain.on('moreDownloadOrderds', (event, status) => {
     moreDownloadOrderds = true;
 });
 
-ipcMain.on('online-status-changed-panel', (event, status) => {
+ipcMain.on('online-status-changed', (event, status) => {
     statusNetwork = status;
     if (status) {
       mergeLocalAndRemoteOrdersCollection();
@@ -248,50 +233,46 @@ ipcMain.on('online-status-changed-panel', (event, status) => {
     }
 });
 
-ipcMain.on('online-status-changed', (event, status) => {
-    statusNetwork = status;
+ipcMain.on('online-status-changed-orders', (event, status) => {
+    statusNetwork         = status;
+    let lengthOrders      = modelOrders.getLengthOrders();
+    let lengthLocalOrders = modelOrders.getLengthLocalOrders();
+
     if (status) {
-      if (addLocalOrders || orders.length === 0) {
-        console.log('Был добавлен заказ(ы), добавляем в MongoDB');
+      if (addLocalOrders || lengthOrders === 0) {
         mergeLocalAndRemoteOrdersCollection();
         mergeLocalAndRemoteOrdersHistoryCollection();
       }
 
-      if (orders.length === 0 && startOrdersPage) {
-        console.log('Сеть есть и загружаем заказы из монги, страница загружена первый раз');
+      if (lengthOrders === 0 && startOrdersPage) {
         getOrders(event);
-      } else if (orders.length > 0 && startOrdersPage) {
-        console.log('Сеть есть: Заказы есть в массиве и страница была перезагружена');
-        event.sender.send('getOrders', orders, 0, orders.length);
-      } else if (localOrders.length > 0 && orders.length === 0) {
-        console.log('Есть сеть, объединяем локальные и удаленные заказы');
-        concatLocalAndRemoteOrders(event);
-      } else if (localOrders.length === 0 && orders.length === 0) {
-        console.log('Сеть есть, но заказов нигде нет, поэтому загружаем');
+
+      } else if (lengthOrders > 0 && startOrdersPage) {
+        event.sender.send('getOrders', modelOrders.getAllOrders());
+
+      } else if (lengthLocalOrders > 0 && lengthOrders === 0) {
+        getOrdersWithTimeout(event);
+
+      } else if (lengthLocalOrders === 0 && lengthOrders === 0) {
         getOrders(event);
       }
       startOrdersPage = false;
 
     } else {
-      if (orders.length > 0 && startOrdersPage) {
-        console.log('Сети нет: Заказы есть в orders и страница была перезагружена');
-        event.sender.send('getOrders', orders, 0, orders.length);
-      } else if (localOrders.length === 0 && startOrdersPage) {
+      if (lengthOrders > 0 && startOrdersPage) {
+        event.sender.send('getOrders', modelOrders.getAllOrders());
+
+      } else if (lengthLocalOrders === 0 && startOrdersPage) {
         getLocalOrders(event);
-        console.log('Загружаем заказы из локала');
-      } else if (localOrders.length > 0 && startOrdersPage) {
-        console.log('Сети нет: Заказы есть в localOrders и страница была перезагружена');
-        event.sender.send('getOrders', localOrders, 0, localOrders.length);
-      } else {
-        console.log('Нет сети, заказы загружать не надо');
+
+      } else if (lengthLocalOrders > 0 && startOrdersPage) {
+        event.sender.send('getOrders', modelOrders.getAllLocalOrdes());
       }
       startOrdersPage = false;
     }
 });
 
-function concatLocalAndRemoteOrders(event) {
-  // orders = orders.concat(localOrders);
-  //Синхронизация
+function getOrdersWithTimeout(event) {
   setTimeout(() => {
     getOrders(event);
     moreDownloadOrderds = false;
@@ -303,758 +284,360 @@ function concatLocalAndRemoteOrders(event) {
 //Устанавливаем флаг addLocalOrders = false,
 //чтобы больше не мержить до событие(добавление в NeDB)
 function mergeLocalAndRemoteOrdersCollection() {
-  controllerLocalStore.getAllOrdersFromLocalStore((_localOrders) => {
-     if (_localOrders.length > 0) {
-           controllerRemoteStore.insertLocalOrders(_localOrders, (status) => console.log(status));
+  addLocalOrders = false;
+  controllerLocalStore.getOrdersFromLocalStore((localOrders) => {
+     if (localOrders.length > 0) {
+           controllerRemoteStore.insertLocalOrders(localOrders, (status) => { if (!status) return false });
            controllerLocalStore.removeAllOrdersFromLocalStore((status) => {
-               addLocalOrders = false;
-               console.log(status);
+               if (!status) return false;
            });
      } else return true;
   });
 }
 
+
 //Получаем истории заказов из NeDB
 //Проверка на кол-во, добавляем в MongoDB, удаляем из NeDB
 function mergeLocalAndRemoteOrdersHistoryCollection() {
-  controllerLocalStore.getAllHistoryOrders((_localHistory) => {
-      if (_localHistory.length > 0) {
-        controllerRemoteStore.insertLocalHistoryOrders(_localHistory, (status) => console.log(status));
-        controllerLocalStore.removeAllHistoryOrders((result) => console.log(result););
+  controllerLocalStore.getAllHistoryOrders((localHistory) => {
+      if (localHistory.length > 0) {
+        controllerRemoteStore.insertLocalHistoryOrders(localHistory, (status) => { if (!status) return false });
+        controllerLocalStore.removeAllHistoryOrders((status) => { if (!status) return false });
       } else return true;
   });
 }
 
-//*******************ORDERS WINDOW*******************//
-//*****************************************************//
 
-//Подключаемся к БД и вставляем переданный заказ
-//Очищаем orders, positionTo, positionAt и загружаем заново заказы (обновляем страницу таким образом)
-
+//Кладем в в MongoDB заказ, если удачно, то и в массив
+//Если неудачно: кладем в NeDB, устанавливаем флаг событие(добавление в NeDB)
+//Если в главном массиве (orders) уже есть заказы, то кладем туда и в массив для
+//локальных заказов, чтобы при появлении сети смержить их.
+//Иначе кладем заказы в массив для локальных заказов
+//Далее ищем декор и клиента, чтобы добавить в базу в случае их отсутствия.
 ipcMain.on('createOrder', function (event, order) {
-    checkStatusNetwork((status) => {
-        if (status) {
-          mongoConnection.mongo.orders.createIndex( { 'id': 1 }, { unique: true } );
-          let result = mongoConnection.mongo.orders.insert(order, function (err, docsInserted) {
-              orders.length = 0;
-              positionTo = 0;
-              positionAt = 0;
-              getOrders(event);
-          });
-        } else {
-          controllerLocalStore.insertOrderToLocalStore(order, (localOrder) => {
-              addLocalOrders = true;
-              if (localOrder === false) {
-                console.log('Такой заказ уже есть');
-                event.sender.send('getOrders', localOrders, 0, localOrders.length);
-              } else if (orders.length > 0) {
-                orders.unshift(order);
-                localOrders.unshift(order);
-                console.log('Создаем и кладем заказ в orders и localOrders');
+      controllerRemoteStore.createOrder(order, (status) => {
+           if (status) {
+             console.log('00: Order is create');
+             modelOrders.unshiftOrders(order);
+             modelOrders.setPositionTo(0);
+             event.sender.send('getOrders', modelOrders.getWorkaArrayOrders());
+           } else {
 
-                event.sender.send('getOrders', orders, 0, orders.length);
-              } else {
-                console.log('Создаем и кладем заказ в localOrders');
-                localOrders.unshift(order);
-                event.sender.send('getOrders', localOrders, 0, localOrders.length);
-              }
-          });
-        }
-    });
+             controllerLocalStore.insertOrderToLocalStore(order, (localOrder) => {
+                 addLocalOrders = true;
+                 if (localOrder === false) {
+                   event.sender.send('getOrders', modelOrders.getWorkaArrayOrders());
 
-    let resultFoundClient = modelClientsDecors.searchClient(order.client);
-    let resultFoundDecor  = modelClientsDecors.searchDecor(order.decor);
+                 } else if (modelOrders.getAllOrders().length > 0) {
+                   // modelOrders.unshiftLocalOrders(order);
+                   modelOrders.unshiftOrders(order);
+                   event.sender.send('getOrders', modelOrders.getWorkaArrayOrders());
 
-    if (resultFoundClient) {
-      controllerRemoteStore.addCLientInDb((status) => {
-           if (!status) controllerLocalStore.addClientInLocalStore(order.client);
-           else console.log('Клиент успешно добавлен в удаленную БД');
-           event.sender.send('getClients', modelClientsDecors.getClients());
+                 } else {
+                   modelOrders.unshiftLocalOrders(order);
+                   event.sender.send('getOrders', modelOrders.getWorkaArrayOrders());
+                 }
+             });
+           }
       });
-    }
 
-    if (resultFoundDecor) {
-      controllerRemoteStore.addDecorInDb((status) => {
-            if (!status) controllerLocalStore.addDecorInLocalStore(order.decor);
-            else console.log('Декор успешно добавлен в удаленную БД');
-            event.sender.send('getDecors', modelClientsDecors.getDecors());
-      });
-    }
+      let resultFoundClient = modelClientsDecors.searchClient(order.client);
+      let resultFoundDecor  = modelClientsDecors.searchDecor(order.decor);
+
+      if (!resultFoundClient) {
+        controllerRemoteStore.addCLientInDb(order.client, (status) => {
+             if (!status) controllerLocalStore.addClientInLocalStore(order.client);
+             event.sender.send('getClients', modelClientsDecors.getAllClients());
+        });
+      }
+
+      if (!resultFoundDecor) {
+        controllerRemoteStore.addDecorInDb(order.decor, (status) => {
+              if (!status) controllerLocalStore.addDecorInLocalStore(order.decor);
+              event.sender.send('getDecors', modelClientsDecors.getAllDecors());
+        });
+      }
 });
 
 
-ipcMain.on('deleteClientOrder', function (event, nameArray, indexItem) {
-    let updateObject;
-
-    if (nameArray === 'clients')     updateObject = modelClientsDecors.deleteClient(indexItem);
-    else if (nameArray === 'decors') updateObject = modelClientsDecors.deleteDecor(indexItem);
-
-    console.log(updateObject);
-    controllerRemoteStore.updateOrdersData(nameArray, updateObject, (status) => {
-        if (status) event.returnValue = true;
-        event.returnValue = false;
-    });
+ipcMain.on('deleteClientDecor', function (event, nameArray, indexItem) {
+      let updateObject;
+      if (nameArray === 'clients')     updateObject = modelClientsDecors.deleteClient(indexItem);
+      else if (nameArray === 'decors') updateObject = modelClientsDecors.deleteDecor(indexItem);
+      console.log(updateObject);
+      controllerRemoteStore.updateOrdersData(nameArray, updateObject, (status) => {
+          if (status) event.returnValue = true;
+          else
+          {
+            controllerLocalStore.updateOrdersData(nameArray, updateObject, (status) => {
+               if (status) event.returnValue = true;
+               event.returnValue = false;
+            });
+          }
+      });
 });
 
 
 ipcMain.on('loadOrder', function (event, arg) {
-    getOrders(event);
+      getOrders(event);
 });
 
 
 //Запрос из usersBar.js, выполняется при смене имени
 ipcMain.on('setUserName', function (event, userName) {
-    modelUsers.setUserName(userName);
+      modelUsers.setUserName(userName);
 });
 
 //Запрос из orders.js
 //Отдает ему пользователя
 ipcMain.on('getUserName', function (event, arg) {
-    event.sender.send('setUserName', modelUsers.getUserName());
+      event.sender.send('setUserName', modelUsers.getUserName());
 });
 
 //Запрос из sideBar.js
 //Возвращает список юзеров для выбора
 ipcMain.on('getUsers', function (event, arg) {
-    event.sender.send('setUsers', modelUsers.getAllUsers());
+      event.sender.send('setUsers', modelUsers.getAllUsers());
 });
 
 ipcMain.on('deleteOrder', function (event, id) {
-    checkStatusNetwork((status) => {
-        if (status) {
-          for (let i = 0; i < orders.length; i++) {
-            if (orders[i].id === id) {
-              let orderDelete        = deleteOrderInDb(id);
-              console.log(orderDelete);
-              let historyOrderDelete = deleteHistoryOrderInDb(id);
-              console.log(historyOrderDelete);
-              if (orderDelete && historyOrderDelete) {
-                orders.splice(i, 1);
-                if (orderRun === id) {
-                  stopOperation(workArrayOrders);
-                  orderRun = null;
-                  historyOperations = [];
-                }
-                event.returnValue = true;
-              } else {
-                event.returnValue = false;
-              }
-            }
+      let _status  = false;
+      controllerRemoteStore.deleteOrder(id, (status) => {
+          if (!status) {
+            controllerLocalStore.removeOrder(id, (status) => {
+                _status = status;
+                controllerLocalStore.removeHistory(id, (status) => {
+                    _status = _status && status;
+                    deleteOrder(event, _status, id);
+                });
+            });
+          } else {
+            _status = status;
+            controllerRemoteStore.deleteHistory(id, (status) => {
+                _status = _status && status;
+                deleteOrder(event, _status, id);
+            });
           }
+      });
+
+      function deleteOrder(event, status, id) {
+        let orderRun = modelOrders.getOrderRun();
+        if (status) {
+          modelOrders.splice(id);
+          if (id === orderRun) {
+            stopOperation();
+            modelOrders.setOrderRun(null);
+            modelOrders.newHistory();
+          }
+          event.returnValue = true;
         } else {
-          console.log('Нет сети для удаления заказа');
           event.returnValue = false;
         }
-    });
+      }
 });
-
-function deleteOrderInDb(id) {
-  mongoConnection.mongo.orders.remove({ 'id': id },
-  { justOne: true },
-  (err, docRemove) => {
-     if (err) return false;
-  });
-  return true;
-}
-
-function deleteHistoryOrderInDb(id) {
-  mongoConnection.mongo.ordersHistory.remove({ 'id': id },
-  { justOne: true },
-  (err, docRemove) => {
-      if (err) return false;
-  });
-  return true;
-}
-
-
-//Загрузка заказов
-//Подключаемся к БД, пропускаем n-позиций, которые уже были загружены
-//Лимит 15 заказов, чтобы не нагружать сеть
-//Сортировка: с последних созданных
-//Кладем документы в массив, ID заказов кладем в массив и увеличиваем positionTo++ для следующих запросов
-//Если positionTo == positionAt, то не даем больше загружать документы, иначе прокрутка вниз вызовет загрузку
-//Устанавливаем positionAt = positionTo
 
 function getOrders(event) {
     controllerRemoteStore.getAllOrders(modelOrders.getPositionTo(), (orders) => {
-        if (positionTo === modelOrders.getPositionAt())
-          event.sender.send('getOrders', orders, positionAt, positionTo, true);
-        else
-          event.sender.send('getOrders', orders, positionAt, positionTo, false);
-
-        modelOrders.setPositionAt(positionTo);
-        moreDownloadOrderds = false;
+          if (orders) event.sender.send('getOrders', orders);
+          else return false;
     });
 }
 
 function getLocalOrders(event) {
-  controllerLocalStore.getOrdersFromLocalStore((_localOrders) => {
+  controllerLocalStore.getOrdersFromLocalStore((localOrders) => {
       moreDownloadOrderds = true;
-      if (_localOrders !== false) {
-        if (_localOrders.length > 0) {
-          localOrders = _localOrders
-          event.sender.send('getOrders', localOrders, 0, localOrders.length);
-          for (let i = 0; i < localOrders.length; i++) {
-            if (localOrders[i].status === 'run') {
-              orderRun = localOrders[i].id;
-              getOperationsHistory(undefined, orderRun);
-            }
-          }
-        } else {
-          console.log('local orders is empty');
-        }
+      if (localOrders !== false && localOrders.length > 0) {
+          console.log('00-L: Orders received');
+          modelOrders.addLocalOrders(localOrders, (id) => {
+              console.log('00-L: Get the history of the ', id);
+              getOperationsHistory(undefined, id);
+          });
+          event.sender.send('getOrders', modelOrders.getAllLocalOrdes());
+      } else {
+        console.log('O1-L: Error get orders from local store');
       }
   });
 }
-
-function checkStatusNetwork(callback) {
-  mongoConnection.connect((status) => {
-     if (status) {
-       return callback(true);
-     } else {
-       return callback(false);
-     }
-  });
-}
-
 
 function getOperationsHistory(event, id) {
-  checkStatusNetwork((status) => {
-      if (status) {
-        let cursor = mongoConnection.mongo.ordersHistory.find( { 'id': id });
-
-        cursor.forEach(
-          resultHistory => {
-            if (event === undefined) {
-              historyOperations = resultHistory.history;
-            } else {
-              event.sender.send('getOperationsHistory', resultHistory.history);
-            }
-          },
-
-          error => {
-            return false;
-          });
-      } else {
-        controllerLocalStore.getHistoryOrdersFromLocalStore(id, (history) => {
-            console.log(event);
-            if (history !== false) {
-              if (event === undefined) {
-                historyOperations = history[0].history;
-              } else {
-                console.log(history[0].history);
-                event.sender.send('getOperationsHistory', history[0].history);
-              }
-            }
-        });
-      }
-  });
-}
-
-//Подключаемся к БД и загружаем юзеров
-function getUsers(event) {
-  let cursor = mongoConnection.mongo.users.find();
-  cursor.forEach(function (doc) {
-    users.push(doc);
-  }, function (err) {
-      if (err) {
-        return false;
-      } else {
-        event.sender.send('getUsers', users);
-        return true;
-      }
-  });
-}
-
-ipcMain.on('removeOrdersID', function (event, arg) {
-    foundOrders = [];
-});
-
-ipcMain.on('timeSearchInDB', function (event, fromDate = null, toDate = null, fromTime = null, toTime = null) {
-    if (statusNetwork) {
-      foundOrders = [];
-
-      let cursor = execute(fromDate, toDate, fromTime, toTime);
-      cursor.sort({ 'dateCreate': -1 })
-      .toArray(function (err, uploadOrders) {
-          if (err) {
-            return false;
-          }
-
-          if (uploadOrders.length) {
-            event.sender.send('foundOrders', uploadOrders);
-            foundOrders = uploadOrders;
-          } else {
-            event.sender.send('error_notFound', null);
-          }
-      });
-    } else {
-      return false;
-    }
-});
-
-function execute(fromDate, toDate, fromTime, toTime) {
-  if (fromDate !== null) {
-      if (toDate !== null) {
-        if (fromTime !== null && toTime !== null) {
-          //Начальная, конечная, начальное, конечное
-          return mongoConnection.mongo.orders
-          .find({
-                  'beginDate': {
-                                $gte: fromDate,
-                                $lte: toDate
-                              }
-                });
-        } else if (fromTime !== null && toTime === null) {
-          //Начальная, конечная, начальное
-          return mongoConnection.mongo.orders
-          .find({
-                  'beginDate': {
-                                $gte: fromDate,
-                                $lte: toDate
-                              }
-                });
-        } else if (fromTime === null && toTime !== null) {
-          //Начальная дата, конечная дата, конечное время
-          return mongoConnection.mongo.orders
-        .find({
-                'beginDate': {
-                              $gte: fromDate,
-                              $lte: toDate
-                            }
-              });
+  controllerRemoteStore.getOperationsHistory(id, history => {
+        if (history.length > 0) {
+          addOrGiveHistory(event, history);
         } else {
-          //Если начальная и конечная дата
-          return mongoConnection.mongo.orders
-          .find({ $and: [
-                    {
-                      'beginDate': {
-                                    $gte: fromDate
-                                  }
-                    },
-
-                    {
-                      'endDate': {
-                                    $lte: toDate
-                                  }
-                    }
-                  ]
+          controllerLocalStore.getHistoryOrdersFromLocalStore(id, (history) => {
+              if (!history) {
+                console.log('01-L: Local history order', id, 'is empty');
+                return false;
+              } else {
+                console.log('00-L: Local history launch order', id, history);
+                addOrGiveHistory(event, history);
+              }
           });
         }
-      }
-
-    if (fromTime !== null && toTime !== null) {
-      //Начальная дата, начальное время, конечное время
-      return mongoConnection.mongo.orders
-      .find({ $and: [
-                {
-                  'beginDate': { $gte: fromDate }
-                },
-
-                {
-                  'beginTime': {
-                                  $lte: toTime
-                               }
-                }
-              ]
-      });
-
-    } else if (fromTime !== null && toTime === null) {
-      //Начальная дата, начальное время
-      return mongoConnection.mongo.orders
-      .find({
-              'beginDate': { $gte: fromDate }
-            });
-    } else if (fromTime === null && toTime !== null) {
-      //Начальная дата, конечное время
-      return mongoConnection.mongo.orders
-      .find({ $and: [
-                {
-                  'beginDate': { $gte: fromDate }
-                },
-
-                {
-                  'beginTime': { $lte: toTime }
-                }
-              ]
-      });
-
-    } else {
-      //Только начальная дата
-      return mongoConnection.mongo.orders
-      .find({
-              'beginDate': { $gte: fromDate }
-            });
-    }
-  } else {
-    if (fromTime !== null && toTime !== null) {
-      //Начальное и конечное время
-      return mongoConnection.mongo.orders
-      .find({ $and: [
-                    {
-                      'beginTime': {
-                                      $gte: fromTime
-                                   }
-                    },
-
-                    {
-                      'endTime': {
-                                      $lte: toTime
-                                 }
-                    }
-                  ]
-            });
-    } else if (fromTime !== null) {
-      //Начальное время
-      return mongoConnection.mongo.orders
-      .find({
-              'beginTime': { $gte: fromTime }
-            });
-
-    } else if (toTime !== null) {
-      //Конечное время
-      return mongoConnection.mongo.orders
-      .find({
-              'endTime': { $gte: toTime }
-            });
-    }
-  }
+  });
 }
 
-ipcMain.on('searchInDB', function (event, key) {
-    if (statusNetwork) {
-      mongoConnection.mongo.orders
-      .find({ $or: [
-                      {'id'    : {$regex: `.*${key}.*`, $options: 'i'} },
-                      {'client': {$regex: `.*${key}.*`, $options: 'i'} },
-                      {'decor' : {$regex: `.*${key}.*`, $options: 'i'} },
-                      {'people': {$regex: `.*${key}.*`, $options: 'i'} }
-                   ]
-            })
-      .sort({ 'dateCreate': -1 })
-      .toArray(function (err, uploadOrders) {
-          if (err) {
-            return false;
-          }
-
-          if (uploadOrders.length) {
-            event.sender.send('foundOrders', uploadOrders);
-            foundOrders = uploadOrders;
-            return true;
-          } else {
-            event.sender.send('error_notFound', null);
-          }
-      });
+function addOrGiveHistory(event, history) {
+    if (event === undefined) {
+      console.log('PROGRAM_DATA: HISTORY: Event is undefined, save history in modelOrders');
+      modelOrders.setHistory(history);
     } else {
-      return false;
+      console.log('PROGRAM_DATA: HISTORY: Event not undefined, get history to event');
+      event.sender.send('getOperationsHistory', history);
     }
+}
+
+
+ipcMain.on('searchByTime', function (event, fromDate = null, toDate = null, fromTime = null, toTime = null) {
+      if (statusNetwork) {
+          modelOrders.newFoundOrders();
+          let cursor = controllerRemoteStore.searchByTime(fromDate, toDate, fromTime, toTime);
+          cursor.sort({ 'dateCreate': -1 })
+          .toArray(function (err, orders) {
+              if (err) return false;
+              if (orders.length) {
+                modelOrders.addFoundOrders(orders);
+                event.sender.send('foundOrders', orders);
+              } else event.sender.send('error_notFound', null);
+          });
+      } else {
+        return false;
+      }
 });
 
-//*******************OPERATION WINDOW*******************//
-//*****************************************************//
-
-//Принимает ID заказа
-//Если нет запущенного заказа, то устанавливаем, иначе выход
-//Находим в массиве заказ, устанавливаем статус, начальную дату и время запуска
+ipcMain.on('searchByInputs', function (event, key) {
+      if (statusNetwork) {
+        modelOrders.newFoundOrders();
+        controllerRemoteStore.searchByInputs(key, (status) => {
+           if (status) event.sender.send('foundOrders', modelOrders.getAllFoundOrdes());
+           else        event.sender.send('error_notFound', null);
+        });
+      } else {
+        return false;
+      }
+});
 
 ipcMain.on('setStatus', function (event, id) {
-    if (orderRun == null) {
-      orderRun = id;
-    } else {
-      event.returnValue = false;
-      return false;
-    }
+      let orderRun = modelOrders.getOrderRun();
+      if (orderRun === null) modelOrders.setOrderRun(id);
+      else event.returnValue = false;
 
-    if (orders.length !== 0) {
-      for (let i = 0; i < orders.length; i++) {
-        if (orders[i].id == id) {
-          orders[i].status = 'run';
-          orders[i].beginDate = new Date().toISOString();
-          orders[i].beginTime = getCurrentTime();
-          event.returnValue = true;
-        }
-      }
-    } else if (localOrders.length !== 0) {
-      for (let i = 0; i < localOrders.length; i++) {
-        if (localOrders[i].id == id) {
-          localOrders[i].status = 'run';
-          localOrders[i].beginDate = new Date().toISOString();
-          localOrders[i].beginTime = getCurrentTime();
-          event.returnValue = true;
-        }
-      }
-    }
+      modelOrders.setStatusRun(id, new Date().toISOString(), getCurrentTime(), (status) => {
+          event.returnValue = status;
+      });
 });
 
 ipcMain.on('setOrderRun', (event, id) => {
-    orderRun = id;
+    modelOrders.setOrderRun(id);
 });
 
-//Запуск операции
-//Запоминаем индекса последнего запущенного элемента
-//Добавляем работника к заказу
-//Создаем интервал в 60 секунд (60000 млсек)
-//Увеличиваем число для вывода, если открыт запущенный заказ, то возвращаем в представление
-//Увеличиваем время у класс операций
 
 ipcMain.on('startOperation', function (event, operation) {
     focusIndex         = operation[4];
-    beginDateOperation = fromDate(beginDateOperation);
+    beginDateOperation = fromDate();
+    let fullDate       = getCurrentDate() + ' ' + getCurrentTime();
 
-    stopOperation(workArrayOrders);
+    stopOperation();
 
-    if (nameOperation !== operation[1]) {
-      lastTimeOperation = 0;
-    }
+    if (nameOperation !== operation[1]) lastTimeOperation = 0;
 
     nameOperation = operation[1];
 
-    addWorkUser(workArrayOrders);
-    editOrder(workArrayOrders, operation);
-    addHistoryOperation(operation);
+    modelOrders.addWorkUser(modelUsers.getUserName());
+    modelOrders.addOperation(operation, fullDate);
+    modelOrders.addHistoryOperation(operation, beginDateOperation, getCurrentDate(), lastTimeOperation);
 
     BlockIntervalID = setInterval(function run() { //Создаем новый таймер для операций
+        lastTimeOperation++;
+        operation[2]++;
 
-      lastTimeOperation++;
-      operation[2]++;
+        if (modelOrders.matchID( modelOrders.getOrderID() )) event.sender.send('setTime', operation);
 
-      if (orderID === orderRun) {
-        event.sender.send('setTime', operation);
-      }
+        modelOrders.setTimeClassOperation(operation[0]);
+        modelOrders.addOperation(operation, fullDate);
+        modelOrders.editHistoryOperation( fullDate, lastTimeOperation );
 
-      setTimeClass(workArrayOrders, operation[0]);
-      editOrder(workArrayOrders, operation);
-      editHistoryOperation();
-      addHistoryToDB();
+        let orderRun = modelOrders.getOrderRun();
+        let history  = modelOrders.getHistory();
+        console.log('PROGRAM_DATA: HISTORY:', history);
+        controllerRemoteStore.addHistory(
+          orderRun,
+          history,
+          (status) => {
+              if (!status) controllerLocalStore.updateHistoryOrderInLocalStore(orderRun, history);
+              else console.log('00-R: History remote is update');
+          });
 
-      for (let i = 0; i < workArrayOrders.length; i++) {
-        if (workArrayOrders[i].id === orderRun) {
-          updateOrder(workArrayOrders[i].id, workArrayOrders[i]);
-          break;
-        }
-      }
-
-    }, 60000);
+        controllerRemoteStore.updateOrder(orderRun, modelOrders.getCurrentRunOrder(), (status) => {
+           if (status) return true;
+           else controllerLocalStore.updateOrderInLocalStore(orderRun, modelOrders.getCurrentRunOrder(), (status) => {
+                if (status) return true;
+           });
+        });
+    }, 5000);
 });
 
-function addHistoryOperation(operation) {
-  let history = [];
-  let hours   = new Date();
-
-  hours.setMinutes(hours.getMinutes() + 1);
-  let optionsForTime = {
-    hour: 'numeric',
-    minute: 'numeric',
-    timezone: 'UTC'
-  };
-  let endDateOperation = hours.toLocaleString('ru-RU', optionsForTime);
-
-  history.push(operation[0]);
-  history.push(operation[1]);
-  history.push(beginDateOperation);
-  history.push(getCurrentDate() + ' ' + endDateOperation);
-  history.push(lastTimeOperation);
-
-  historyOperations.push(history);
-}
-
-function editHistoryOperation() {
-  let hours   = new Date();
-
-  hours.setMinutes(hours.getMinutes() + 1);
-  let optionsForTime = {
-    hour: 'numeric',
-    minute: 'numeric',
-    timezone: 'UTC'
-  };
-
-  let endDateOperation = hours.toLocaleString('ru-RU', optionsForTime);
-
-  historyOperations[historyOperations.length - 1][3] = getCurrentDate() + ' ' + getCurrentTime();
-  historyOperations[historyOperations.length - 1][4] = lastTimeOperation;
-}
-
-function addHistoryToDB() {
-  checkStatusNetwork((status) => {
-      if (status) {
-        mongoConnection.mongo.ordersHistory.update({ 'id': orderRun },
-        {
-          'id': orderRun,
-          'history': historyOperations
-        },
-        { upsert: true },
-        (err, docsUpdated) => {
-            if (err) console.log(err);
-            // else console.log(docUpdated);
-        });
-      } else {
-        controllerLocalStore.updateHistoryOrderInLocalStore(orderRun, historyOperations);
-      }
-  });
-}
-
-function setEndTimeOperation(_orders) {
-  for (let i = 0; i < _orders.length; i++) {
-    if (_orders[i].id === orderRun) {
-      for (let j = 0; j < _orders[i].info.length; j++) {
-        if (_orders[i].info[j][1] === nameOperation) {
-          _orders[i].info[j][4] = getCurrentDate() + ' ' + getCurrentTime();
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
-function fromDate(beginDateOperation) {
+function fromDate() {
   beginDateOperation = null;
   return getCurrentDate() + ' ' + getCurrentTime();
 }
 
-//Находим запущенный заказ, если работника в массиве нет, то добавляем, иначе возврат
-function addWorkUser(orders) {
-  for (let i = 0; i < orders.length; i++) {
-    if (orders[i].id == orderRun) {
-      for (let j = 0; j < orders[i].people.length; j++) {
-        if (orders[i].people[j] == userName) return true;
-      }
-      orders[i].people.push(userName);
-    }
-  }
-}
-
 //Останавливаем и очищаем интервал
-function stopOperation(_orders) {
-  if(BlockIntervalID != null) {
+function stopOperation(callback) {
+  if (BlockIntervalID != null) {
     clearInterval(BlockIntervalID);
-    setEndTimeOperation(_orders);
     BlockIntervalID = null;
+    modelOrders.setTimeEndOperation(nameOperation, getCurrentDate(), getCurrentTime(), (status) => {
+        if (status) {
+          let orderRunID = modelOrders.getOrderRun();
+          let order      = modelOrders.getCurrentRunOrder();
+          controllerRemoteStore.updateOrder(orderRunID, order, (status) => {
+                                              if (status) console.log('00-R: Операция остановлена');
+                                              else {
+                                                console.log('00-L: Stop operation in local');
+                                                controllerLocalStore.updateOrderInLocalStore(orderRunID, order, (status) => {
+                                                      if (status) console.log('00-L: Операция остановлена');
+                                                });
+                                              }
+                                              returnCallback(callback);
+                                          });
+        }
+        else console.log('01: Операция не остановлена');
+    });
   }
-}
 
-
-//Находим запущенный процесс и передаем в addOperation: операции и операцию из представления
-function editOrder(orders, operation) {
-  for (let i = 0; i < orders.length; i++) {
-    if (orders[i].id == orderRun) addOperation(orders[i].info, operation);
-  }
-}
-
-
-//Если операция уже есть в массиве, то меняем время у операции и выходим,
-//иначе заносим массив с новой операцией и ее временем
-
-function addOperation(arrOperation, operation) {
-  for (let i = 0; i < arrOperation.length; i++) {
-    if (arrOperation[i][1] == operation[1]) {
-      arrOperation[i][2] = operation[2];
-      return true;
-    }
-  }
-  arrOperation.push([operation[0], operation[1], operation[2], getCurrentDate() + ' ' + getCurrentTime(), ' ']);
-}
-
-//Находим запущенную операцию
-//Сравниваем переданный класс операцию и меняем значение времени этого класса
-
-function setTimeClass(orders, className) {
-  for (let i = 0; i < orders.length; i++) {
-    if (orders[i].id == orderRun) {
-      switch (className) {
-        case 'Наладка':
-        case 'Цветоподбор':
-        case 'Печать':
-          orders[i].usefulTime++;
-        break;
-
-        case 'Простои ПЗ':
-        case 'Простои техники':
-          orders[i].unhelpfulTime++;
-        break;
-
-        case 'Остановка программы':
-          orders[i].necessaryTime++;
-        break;
-
-        default:
-          return false;
-      }
-      return true;
+  function returnCallback(callback) {
+    if (callback !== null || callback !== undefined) {
+      console.log('PROGRAM_DATA: QUIT: App exit');
+      return callback(true);
     }
   }
 }
-
-
-//Если
-//переданный id совпадает с id запущенной операцией, то останавливаем интервал
-//Находим в массиве заказ, устанавливаем статус, дату и время
-//Очищаем orderRun (хранит id запущенного заказ)
-//Меняем представление
-//Подключаемся к БД и обновляем заказ там
-
-//Иначе
-//Вывести в лог
 
 ipcMain.on('closeOrder', function (event, id) {
-    if (orderRun == id) {
-      stopOperation(workArrayOrders);
-      for (let i = 0; i < workArrayOrders.length; i++) {
-        if (workArrayOrders[i].id == orderRun) {
-          workArrayOrders[i].status = 'close';
-          workArrayOrders[i].endDate = new Date().toISOString();
-          workArrayOrders[i].endTime = getCurrentTime();
+    if (!(modelOrders.matchID(id))) return false;
 
-          updateOrder(orderRun, workArrayOrders[i]);
-          orderRun = null;
-          historyOperations = [];
-          event.sender.send('showCloseOrder', workArrayOrders[i]);
-        }
-      }
-    } else {
-      console.log('Не тот заказ пытаетесь закрыть');
-    }
+    stopOperation();
+    let date = new Date().toISOString();
+    let time = getCurrentTime();
+    modelOrders.closeOrder(date, time)
+    controllerRemoteStore.updateOrder(id, modelOrders.getCurrentRunOrder(), (status) => {
+       if (status) {
+         console.log('00-R: Заказ успешно обновлен');
+         event.sender.send('showCloseOrder', null);
+       } else {
+         console.log('00-L: Попытка закрыть заказ локально');
+         controllerLocalStore.updateOrderInLocalStore(id, modelOrders.getCurrentRunOrder(), (status) => {
+              if (status) event.sender.send('showCloseOrder', null);
+              else return false;
+         });
+       }
+       modelOrders.setOrderRun(null);
+       modelOrders.newHistory();
+       lastTimeOperation = 0;
+       nameOperation     = null;
+    });
 });
-
-function updateOrder(id, order) {
-  checkStatusNetwork((status) => {
-     if (status) {
-       mongoConnection.mongo.orders.update(
-           { 'id': id },
-           {
-              'beginDate': order.beginDate,
-              'beginTime': order.beginTime,
-                 'client': order.client,
-                  'count': order.count,
-             'dateCreate': order.dateCreate,
-                  'decor': order.decor,
-                'endDate': order.endDate,
-                'endTime': order.endTime,
-                     'id': order.id,
-                   'info': order.info,
-          'necessaryTime': order.necessaryTime,
-                 'people': order.people,
-                 'status': order.status,
-          'unhelpfulTime': order.unhelpfulTime,
-             'usefulTime': order.usefulTime,
-            'userCreater': order.userCreater,
-                 'weight': order.weight
-           },
-           {
-             upsert: true
-           }
-       , function (err, docUpdated) {
-         return true;
-       });
-     } else {
-       console.log('Обновление заказа локально');
-       console.log(id);
-       console.log(order);
-       controllerLocalStore.updateOrderInLocalStore(id, order);
-     }
-  });
-}
-
 
 //Текущая дата
 function getCurrentDate() {

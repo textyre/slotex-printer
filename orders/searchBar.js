@@ -20,7 +20,7 @@ window.addEventListener('load', function () {
                   setTimeout(() => {
                     if (searchKey !== bufferSearchKey) {
                         removeErrorNotFoundOnDisplay();
-                        ipcRenderer.send('searchInDB', searchKey);
+                        ipcRenderer.send('searchByInputs', searchKey);
                         bufferSearchKey = searchKey;
                     }
                   }, 700);

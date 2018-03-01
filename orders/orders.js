@@ -18,10 +18,12 @@ ipcRenderer.send('startOrdersPage', true);
 ipcRenderer.send('moreDownloadOrderds', true);
 ipcRenderer.send('getUserName', null);
 
-ipcRenderer.on('getOrders', function (event, orders, positionAt, positionTo, flag) {
-    loadContent = flag;
-    _orders     = orders;
-    outOrderOnPage(orders, positionAt, positionTo);
+ipcRenderer.on('getOrders', function (event, orders) {
+    console.log('ORDER WINDOW: Clear "main" block');
+    document.getElementById('main').innerHTML = '';
+    console.log('ORDER WINDOW: Out recevied orders');
+    console.log(orders);
+    outOrderOnPage(orders, 0, orders.length);
 });
 
 ipcRenderer.on('setUserName', function (event, userName) {
@@ -42,14 +44,9 @@ ipcRenderer.on('foundOrders', function (event, arrayOrders) {
 
 const updateOnlineStatus = () => {
   statusNetwork = navigator.onLine ? true : false;
-  if (statusNetwork) {
-    console.log('есть сеть');
-    hideBlock_emptyNetwork();
-  } else {
-    console.log('нет сети');
-    showBlock_emptyNetwork();
-  }
-  ipcRenderer.send('online-status-changed', statusNetwork);
+  if (statusNetwork) hideBlock_emptyNetwork();
+  else showBlock_emptyNetwork();
+  ipcRenderer.send('online-status-changed-orders', statusNetwork);
 }
 
 window.addEventListener('online',  updateOnlineStatus);
@@ -65,7 +62,7 @@ window.addEventListener('load', function () {
           window.scrollBy(0, window.innerHeight);
         }, 400);
 
-        ipcRenderer.send("loadOrder", null);
+        ipcRenderer.send('loadOrder', null);
       }
     });
 
@@ -94,26 +91,12 @@ function openPanel() {
       event.target.className.indexOf('deleteOrderICO')   !== -1) return true;
 
   let id = $(this).attr('id');
-
-  searchOrdersInFoundOrders(id, 'panelWindow');
-  for (let i = 0; i < _orders.length; i++) {
-    if (_orders[i].id == id) {
-      ipcRenderer.send("openWindow", ['panelWindow', id]);
-      return true;
-    }
-  }
+  ipcRenderer.send('openWindow', ['panelWindow', id]);
 }
 
 function openStatistics() {
   let id = event.target.parentNode.parentNode.parentNode.id;
-  console.log(id);
-  searchOrdersInFoundOrders(id, 'statisticsWindow');
-  for (let i = 0; i < _orders.length; i++) {
-    if (_orders[i].id == id) {
-      ipcRenderer.send("openWindow", ['statisticsWindow', id]);
-      return true;
-    }
-  }
+  ipcRenderer.send('openWindow', ['statisticsWindow', id]);
 }
 
 let deleteOrderID;
@@ -140,7 +123,6 @@ function getTemplateDeleteOrder(id) {
 }
 
 function accessDeleteOrder() {
-
   let result = ipcRenderer.sendSync('deleteOrder', deleteOrderID);
   if (result) {
     document.getElementById(deleteOrderID).remove();
@@ -167,25 +149,19 @@ function outOrderOnPage(arr, positionAt, positionTo, mode) {
   let orderStatus;
 
   for (let i = positionAt; i < positionTo; i++) {
-    // if (document.getElementById(arr[i].id) === null) {
       orderStatus = getClassTemplate(arr[i].status);
       document.getElementById('main').innerHTML += getTemplate(arr[i], orderStatus, mode);
-    // }
   }
-
   setEventListener(main);
 }
 
 function setEventListener(section) {
-  var orders           = section.getElementsByClassName('order');
-  var iconsStatistics  = section.getElementsByClassName('statisticsICO');
+  let orders           = section.getElementsByClassName('order');
+  let iconsStatistics  = section.getElementsByClassName('statisticsICO');
   let iconsDeleteOrder = section.getElementsByClassName('deleteOrderICO');
 
   for (let i = 0; i < orders.length; i++) {
     orders[i].addEventListener('click', openPanel);
-  }
-
-  for (let i = 0; i < iconsStatistics.length; i++) {
     iconsStatistics[i].addEventListener('click', openStatistics);
     iconsDeleteOrder[i].addEventListener('click', deleteOrder);
   }

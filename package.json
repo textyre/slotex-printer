@@ -14,8 +14,10 @@
     "nedb": "^1.8.0"
   },
   "devDependencies": {
+    "devtron": "^1.4.0",
     "electron": "1.7.10",
     "electron-packager": "^10.1.2",
+    "spectron": "^3.8.0",
     "webpack": "^3.10.0"
   }
 }

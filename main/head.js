@@ -15,7 +15,8 @@ window.addEventListener('load', function () {
     });
 
     back.addEventListener('click', function () {
-        ipcRenderer.send('openWindow', 'ordersWindow');
+        console.log('Back to Orders Window');
+        ipcRenderer.send('openWindow', ['ordersWindow']);
     }, false);
 
 

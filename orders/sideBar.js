@@ -66,10 +66,6 @@ window.addEventListener('load', function () {
         }
     });
 
-    // inputFromDate.addEventListener('keyup', function(event) {
-    //     keyInputs = event.key;
-    // });
-
     inputFromDate.addEventListener('focusout', function() {
         if (statusNetwork) {
           let valueFromDate = inputFromDate.value;
@@ -83,7 +79,6 @@ window.addEventListener('load', function () {
           let date = valueFromDate.split('.');
           if (date.length === 3) {
             let flag = checkOnErrorInputDate(valueFromDate);
-
             if (flag) {
               activableInputToDate(inputToDate);
               hideDownloadOrders();
@@ -233,46 +228,46 @@ function checkInputWhithToDate(valueFromDate, valueToDate, valueFromTime, valueT
     if (valueFromTime !== '' && valueToTime !== '') {
       // console.log('Начальная, конечная, начальное, конечное');
 
-      ipcRenderer.send('timeSearchInDB', getCurrentDateWithTime(valueFromDate, valueFromTime),
+      ipcRenderer.send('searchByTime', getCurrentDateWithTime(valueFromDate, valueFromTime),
                                          getCurrentDateWithTime(valueToDate, valueToTime), valueFromTime, valueToTime);
       document.getElementById('time').innerHTML = valueFromDate + ' ' + valueFromTime + '   -   ' +
                                                   valueToDate   + ' ' + valueToTime;
     } else if (valueFromTime !== '') {
       // console.log('Начальная, конечная, начальное');
-      ipcRenderer.send('timeSearchInDB', getCurrentDateWithTime(valueFromDate, valueFromTime),
+      ipcRenderer.send('searchByTime', getCurrentDateWithTime(valueFromDate, valueFromTime),
                                          getCurrentDateWithOutTime(valueToDate), valueFromTime);
       document.getElementById('time').innerHTML = valueFromDate + ' ' + valueFromTime + '   -   ' +
                                                   valueToDate;
     } else if (valueToTime !== '') {
       // console.log('Начальная, конечная, конечное');
-      ipcRenderer.send('timeSearchInDB', getCurrentDateWithOutTime(valueFromDate),
+      ipcRenderer.send('searchByTime', getCurrentDateWithOutTime(valueFromDate),
                                          getCurrentDateWithTime(valueToDate, valueToTime), undefined, valueToTime);
       document.getElementById('time').innerHTML = valueFromDate + '   -   ' +
                                                   valueToDate   + ' ' + valueToTime;
     } else {
       // console.log('Начальная, конечная');
-      ipcRenderer.send('timeSearchInDB', getCurrentDateWithOutTime(valueFromDate),
+      ipcRenderer.send('searchByTime', getCurrentDateWithOutTime(valueFromDate),
                                          getCurrentDateWithOutTime(valueToDate));
       document.getElementById('time').innerHTML = valueFromDate + '   -   ' + valueToDate;
     }
   } else if (valueFromTime !== '' && valueToTime === '') {
     // console.log('Начальная, начальное');
-    ipcRenderer.send('timeSearchInDB', getCurrentDateWithTime(valueFromDate, valueFromTime),
+    ipcRenderer.send('searchByTime', getCurrentDateWithTime(valueFromDate, valueFromTime),
                                        undefined, valueFromTime, undefined);
     document.getElementById('time').innerHTML = valueFromDate + ' ' + valueFromTime;
   } else if (valueFromTime === '' && valueToTime !== '') {
     // console.log('Начальная, конечное');
-    ipcRenderer.send('timeSearchInDB', getCurrentDateWithOutTime(valueFromDate),
+    ipcRenderer.send('searchByTime', getCurrentDateWithOutTime(valueFromDate),
                                        undefined, undefined, valueToTime);
     document.getElementById('time').innerHTML = valueFromDate + ' ' + valueToTime;
   } else if (valueFromTime !== '' && valueToTime !== '') {
     // console.log('Начальная, начальное, конечное');
-    ipcRenderer.send('timeSearchInDB', getCurrentDateWithTime(valueFromDate, valueFromTime),
+    ipcRenderer.send('searchByTime', getCurrentDateWithTime(valueFromDate, valueFromTime),
                                        undefined, valueFromTime, valueToTime);
     document.getElementById('time').innerHTML = valueFromDate + ' ' + valueFromTime + '-' + valueToTime;
   } else {
     // console.log('Начальная');
-    ipcRenderer.send('timeSearchInDB', getCurrentDateWithOutTime(valueFromDate));
+    ipcRenderer.send('searchByTime', getCurrentDateWithOutTime(valueFromDate));
     document.getElementById('time').innerHTML = valueFromDate;
   }
 }
@@ -280,15 +275,15 @@ function checkInputWhithToDate(valueFromDate, valueToDate, valueFromTime, valueT
 function checkInputWhithOutDates(valueFromTime, valueToTime) {
   if (valueFromTime !== '' && valueToTime !== '') {
     // console.log('Начальное, конечное');
-    ipcRenderer.send('timeSearchInDB', undefined, undefined, valueFromTime, valueToTime);
+    ipcRenderer.send('searchByTime', undefined, undefined, valueFromTime, valueToTime);
     document.getElementById('time').innerHTML = valueFromTime + '-' + valueToTime;
   } else if (valueFromTime !== '') {
     // console.log('Начальное');
-    ipcRenderer.send('timeSearchInDB', undefined, undefined, valueFromTime, undefined);
+    ipcRenderer.send('searchByTime', undefined, undefined, valueFromTime, undefined);
     document.getElementById('time').innerHTML = valueFromTime;
   } else if (valueToTime !== '') {
     // console.log('Конечное');
-    ipcRenderer.send('timeSearchInDB', undefined, undefined, undefined, valueToTime);
+    ipcRenderer.send('searchByTime', undefined, undefined, undefined, valueToTime);
     document.getElementById('time').innerHTML = valueToTime;
   }
 }
@@ -310,6 +305,7 @@ function checkOnErrorInputDate(date) {
 }
 
 function activableInputToDate(inputToDate) {
+  inputToDate.value = '';
   inputToDate.style.pointerEvents = 'auto';
   inputToDate.style.opacity       = '1';
 }

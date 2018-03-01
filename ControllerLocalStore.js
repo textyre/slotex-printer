@@ -5,9 +5,9 @@ module.exports = class ControllerLocalStore {
   constructor(app, modelUsers) {
     let _modelUsers = modelUsers;
 
-    const succesfull_update_users   = 'Коллекция Users в локальном хранилище успено обновлена';
-    const succesfull_update_clients = 'Коллекция ordersData (док. id: clients) в локальном хранилище успено обновлена';
-    const succesfull_update_decors = 'Коллекция ordersData (док. id: decors) в локальном хранилище успено обновлена';
+    const succesfull_update_users   = '00: Коллекция Users в локальном хранилище успено обновлена';
+    const succesfull_update_clients = '00: Коллекция ordersData (док. id: clients) в локальном хранилище успено обновлена';
+    const succesfull_update_decors  = '00: Коллекция ordersData (док. id: decors) в локальном хранилище успено обновлена';
 
     let db               = {};
         db.users         = new Datastore({ filename: path.join(app.getPath('userData'), 'users.db'), autoload: true });
@@ -28,7 +28,9 @@ module.exports = class ControllerLocalStore {
 
     this.getUsersFromLocalStore = function (callback) {
       db.users.find({}, function (err, users) {
+          if (err || users.length === 0) return callback(false);
           _modelUsers.addUsers(users[0].users);
+          return callback(true);
       });
     }
 
@@ -68,6 +70,14 @@ module.exports = class ControllerLocalStore {
       );
     }
 
+    this.updateOrdersData = function (nameArray, updateObject, callback) {
+      db.ordersData.update({ 'id': nameArray }, updateObject,
+      (err, docUpdated) => {
+          if (err) return callback(false);
+          return callback(true);
+      });
+    }
+
     this.addDecorInLocalStore = function (decor) {
       db.ordersData.update({ 'id': 'decors' },
                            { $push: { 'decors': decor } },
@@ -90,13 +100,7 @@ module.exports = class ControllerLocalStore {
     }
 
     this.getOrdersFromLocalStore = function (callback) {
-      db.orders.find({}).sort({ 'dateCreate': -1 }).exec( (err, orders) => {
-          _dataReclaimer(err, orders, callback);
-      });
-    }
-
-    this.getAllOrdersFromLocalStore = function (callback) {
-      db.orders.find({}).sort({ 'dateCreate': -1 }).exec( (err, orders) => {
+      db.orders.find({}).sort({ 'status': -1, 'dateCreate': -1 }).exec( (err, orders) => {
           _dataReclaimer(err, orders, callback);
       });
     }
@@ -107,8 +111,16 @@ module.exports = class ControllerLocalStore {
       });
     }
 
-    this.updateOrderInLocalStore = function (id, order) {
-      _updateOrder(db.orders, id, order);
+    this.removeOrder = function (id, callback) {
+      db.orders.remove( { 'id': id }, { justOne: true },
+        (err, docRemove) => {
+           if (err) return callback(false);
+           return callback(true);
+        });
+    }
+
+    this.updateOrderInLocalStore = function (id, order, callback) {
+      _updateOrder(db.orders, id, order, callback);
     }
 
     this.updateHistoryOrderInLocalStore = function (id, history) {
@@ -117,7 +129,8 @@ module.exports = class ControllerLocalStore {
 
     this.getHistoryOrdersFromLocalStore = function (id, callback) {
       db.ordersHistory.find({ 'id': id }, function (err, history) {
-          _dataReclaimer(err, history, callback);
+        if (history.length === 0) callback(false);
+        else _dataReclaimer(err, history[0].history, callback);
       });
     }
 
@@ -131,6 +144,14 @@ module.exports = class ControllerLocalStore {
       db.ordersHistory.remove({}, { multi: true }, function (err, docsRemoved) {
           callback(docsRemoved);
       });
+    }
+
+    this.removeHistory = function (id, callback) {
+      db.ordersHistory.remove( { 'id': id }, { justOne: true },
+        (err, docRemove) => {
+            if (err) return callback(false);
+            return callback(true);
+        });
     }
   }
 }
@@ -150,7 +171,7 @@ function _dataReclaimer(err, data, callback) {
   }
 }
 
-function _updateOrder(collection, id, order) {
+function _updateOrder(collection, id, order, callback) {
   collection.update(
       { 'id': id },
       {
@@ -175,7 +196,14 @@ function _updateOrder(collection, id, order) {
       { upsert: true },
 
       (err, docUpdated) => {
-        if (err) console.log(err);
+          if (err) {
+             console.log('01-L: Заказ не обновлен локально', err.errorType);
+             return callback(false);
+          }
+          else {
+            console.log('00-L: Заказ успешно обновлен');
+            return callback(true);
+          }
       });
 }
 
@@ -189,6 +217,13 @@ function _updateHistoryOrder(collection, id, history) {
                       { upsert: true },
 
   (err, docsUpdated) => {
-      if (err) return false;
+      if (err) {
+        console.log('01-L: Error update one history document in NeDB', err.errorType);
+        return false;
+      }
+      else {
+        console.log('00-L: One update history document in NeDB');
+        return true;
+      }
   });
 }

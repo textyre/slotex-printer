@@ -19,7 +19,7 @@ let _order;
 let allOutOperationsOnDisplay = true;
 
 const updateOnlineStatus = () => {
-  ipcRenderer.send('online-status-changed-panel', navigator.onLine ? true : false)
+  ipcRenderer.send('online-status-changed', navigator.onLine ? true : false)
 }
 
 window.addEventListener('online',  updateOnlineStatus);
@@ -37,9 +37,7 @@ window.addEventListener('load', function () {
             allOutOperationsOnDisplay = false;
             for (let i = 0; i < order.info.length; i++) {
               outOperation(order.info[i], focusIndex);
-              if (i === order.info.length - 1) {
-                allOutOperationsOnDisplay = true;
-              }
+              if (i === order.info.length - 1) allOutOperationsOnDisplay = true;
             }
           break;
 
@@ -59,7 +57,6 @@ window.addEventListener('load', function () {
     });
 
     ipcRenderer.on('showCloseOrder', function (event, order) {
-        console.log(order);
         let operationsBlock = document.getElementsByName('operationsBlock');
         for (let i = 0; i < operationsBlock.length; i++) {
           changeColorAllOperations(operationsBlock[i]);
@@ -113,7 +110,6 @@ function getProgramClass(className) {
 //   Иначе установит на последний элемент фокус.
 
 function outOperation(operation, focusIndex) {
-  console.log(status);
   switch (status) {
     case 'run':
       ipcRenderer.send('setOrderRun', _order.id);
@@ -132,10 +128,7 @@ function outOperation(operation, focusIndex) {
 
     default:
       let flag = ipcRenderer.sendSync('setStatus', _order.id);
-      if (!flag) {
-        console.log('Уже выполняется какой-то заказ');
-        return true;
-      }
+      if (!flag) return true;
       clearTemplate();
       status = 'run';
   }

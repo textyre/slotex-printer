@@ -16,7 +16,6 @@ window.addEventListener('click', function () {
 });
 
 ipcRenderer.on('getClients', function (event, _clients) {
-    console.log(_clients);
     clients = _clients;
 });
 
@@ -32,7 +31,6 @@ window.addEventListener('load', function () {
     let btnCreateOrder = document.getElementById('btnCreateOrder');
 
     inputClient.addEventListener('focus', function () {
-        console.log(clients);
         if (clients.length) {
           nameInput   = 'clients';
           eventTarget = event.target;
@@ -105,7 +103,7 @@ function deleteClientsDecors () {
       indexItem = i;
     }
   }
-  let result = ipcRenderer.sendSync('deleteClientOrder', nameInput, indexItem);
+  let result = ipcRenderer.sendSync('deleteClientDecor', nameInput, indexItem);
   if (result) event.target.parentNode.remove();
 }
 
@@ -170,7 +168,7 @@ function createOrder() {
             "necessaryTime": 0,
             "status":      "open"
           };
-          document.getElementById('main').innerHTML = "";
+          // document.getElementById('main').innerHTML = "";
           ipcRenderer.send("createOrder", objectOrder);
     } else {
       console.log('Пустые поля');

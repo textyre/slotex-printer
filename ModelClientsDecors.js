@@ -45,6 +45,7 @@ module.exports = class ModelClientsDecors {
     this.deleteClient = function (index) {
       let updateObject = null;
       clients.splice(index, 1);
+      
       return updateObject = {
         'id': 'clients',
         'clients': clients
@@ -54,6 +55,7 @@ module.exports = class ModelClientsDecors {
     this.deleteDecor = function (index) {
       let updateObject = null;
       decors.splice(index, 1);
+
       return updateObject = {
         'id': 'decors',
         'decors': decors

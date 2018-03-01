@@ -2,6 +2,15 @@ const ipcRenderer = require('electron').ipcRenderer;
 
 ipcRenderer.send('windowLoad', 'statisticsWindow');
 
+const updateOnlineStatus = () => {
+  ipcRenderer.send('online-status-changed', navigator.onLine ? true : false)
+}
+
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline',  updateOnlineStatus);
+
+updateOnlineStatus();
+
 ipcRenderer.on('getOrder', function (event, order, userName) {
     console.log(order);
 
@@ -15,7 +24,6 @@ ipcRenderer.on('getOrder', function (event, order, userName) {
 });
 
 ipcRenderer.on('getOperationsHistory', function (event, operationHistory) {
-    console.log(operationHistory);
     let block_historyOperation = document.getElementById('historyOperation');
     for (let i = 0; i < operationHistory.length; i++) {
       block_historyOperation.innerHTML += outOperationHistory(operationHistory[i]);
