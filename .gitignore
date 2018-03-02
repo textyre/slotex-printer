@@ -2,6 +2,8 @@
 bower_components/
 node_modules/
 dist
+Printer-win32-ia32/
+Printer-win32-x64/
 
 #files
 *.tgz

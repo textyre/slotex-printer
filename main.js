@@ -818,7 +818,7 @@ ipcMain.on('startOperation', function (event, operation) {
         }
       }
 
-    }, 1000);
+    }, 60000);
 });
 
 function addHistoryOperation(operation) {

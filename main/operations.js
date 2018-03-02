@@ -5,7 +5,7 @@ const remote = require('electron').remote;
 let countOperation = 0;
 
 //Псевдоконстанта для увелечения tabIndex
-let lastIndex      = 28;
+let lastIndex      = 30;
 
 //Содержит последнюю операцию на экране, чтобы возвращать на нее фокус
 let lastActiveElement = null;
